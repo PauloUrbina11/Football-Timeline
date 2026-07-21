@@ -24,6 +24,13 @@
   --color-success: #22c55e;
   --color-danger: #ef4444;
 
+  /* Colores de acento por modo de juego (ver modes-registry.ts): diferencian visualmente
+     cada modo sin depender de un color primario/verde único para todo. */
+  --color-mode-blue: #38bdf8;
+  --color-mode-rose: #fb7185;
+  --color-mode-violet: #a78bfa;
+  --color-mode-amber: #fbbf24;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

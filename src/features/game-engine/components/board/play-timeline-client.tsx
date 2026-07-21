@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { startSession } from "@/features/game-engine/actions/start-session";
+import { getGameMode } from "@/features/game-engine/domain/modes-registry";
 import type { EventCardData } from "@/features/game-engine/domain/types";
 import { TimelineBoard } from "./timeline-board";
 
 export interface PlayTimelineClientProps {
   timelineId: string;
   timelineTitle: string;
+  modeId: string;
 }
 
 type LoadState =
@@ -20,7 +22,7 @@ type LoadState =
  * `startSession` necesita poder escribir la cookie de `anon_id`, y Next.js solo permite mutar
  * cookies dentro de una invocación real de Server Action, no durante el render de una página.
  */
-export function PlayTimelineClient({ timelineId, timelineTitle }: PlayTimelineClientProps) {
+export function PlayTimelineClient({ timelineId, timelineTitle, modeId }: PlayTimelineClientProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const hasStartedRef = useRef(false);
 
@@ -51,5 +53,14 @@ export function PlayTimelineClient({ timelineId, timelineTitle }: PlayTimelineCl
     return <p className="text-danger">{state.message}</p>;
   }
 
-  return <TimelineBoard sessionId={state.sessionId} initialCards={state.cards} timelineTitle={timelineTitle} />;
+  const mode = getGameMode(modeId);
+
+  return (
+    <TimelineBoard
+      sessionId={state.sessionId}
+      initialCards={state.cards}
+      timelineTitle={timelineTitle}
+      accent={mode?.accent}
+    />
+  );
 }

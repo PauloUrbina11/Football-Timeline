@@ -38,7 +38,7 @@ export default async function PlayTimelinePage({
       <h1 className="text-2xl font-bold tracking-tight">{timeline.title}</h1>
       <p className="mt-1 text-sm text-muted">Ordena las tarjetas cronológicamente y pulsa &quot;Comprobar&quot;.</p>
       <div className="mt-8">
-        <PlayTimelineClient timelineId={timeline.id} timelineTitle={timeline.title} />
+        <PlayTimelineClient timelineId={timeline.id} timelineTitle={timeline.title} modeId={mode} />
       </div>
     </Container>
   );

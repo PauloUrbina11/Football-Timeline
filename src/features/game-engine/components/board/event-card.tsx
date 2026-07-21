@@ -5,14 +5,17 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import type { EventCardData } from "@/features/game-engine/domain/types";
 import type { CardCheckState } from "@/features/game-engine/hooks/use-game-session";
+import type { ModeAccent } from "@/features/game-engine/domain/modes-registry";
+import { ACCENT_CLASSES } from "@/features/game-engine/domain/accent-classes";
 
 export interface EventCardProps {
   event: EventCardData;
   position: number;
   state: CardCheckState;
+  accent: ModeAccent;
 }
 
-const stateClasses: Record<CardCheckState, string> = {
+const stateBorderClasses: Record<CardCheckState, string> = {
   idle: "border-border",
   correct: "border-primary ring-1 ring-primary",
   incorrect: "border-danger ring-1 ring-danger",
@@ -20,8 +23,9 @@ const stateClasses: Record<CardCheckState, string> = {
 
 // Deliberadamente NO se renderiza `event.displayDate` (revelaría el orden). Tampoco se recibe
 // `description` del servidor durante el juego: ver get_timeline_play_cards en supabase/migrations.
-export function EventCard({ event, position, state }: EventCardProps) {
+export function EventCard({ event, position, state, accent }: EventCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: event.id });
+  const accentClasses = ACCENT_CLASSES[accent];
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -39,12 +43,18 @@ export function EventCard({ event, position, state }: EventCardProps) {
       data-state={state}
       className={cn(
         "flex touch-none select-none items-center gap-4 rounded-xl border bg-surface p-4 outline-none",
-        "cursor-grab transition-colors active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-primary",
-        stateClasses[state],
+        "cursor-grab transition-colors active:cursor-grabbing focus-visible:ring-2",
+        accentClasses.focusRing,
+        state === "idle" ? "border-border" : stateBorderClasses[state],
         isDragging && "opacity-60 shadow-lg",
       )}
     >
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-hover text-sm font-semibold text-muted">
+      <span
+        className={cn(
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-hover text-sm font-semibold",
+          accentClasses.text,
+        )}
+      >
         {position}
       </span>
       <div className="flex-1">

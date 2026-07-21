@@ -83,6 +83,7 @@ export function DailyChallengeClient() {
         sessionId={state.sessionId}
         initialCards={state.cards}
         timelineTitle={state.timelineTitle}
+        accent={mode?.accent}
         renderResult={({ score, attempts, elapsedMs }) => (
           <DailyResult
             sessionId={state.sessionId}

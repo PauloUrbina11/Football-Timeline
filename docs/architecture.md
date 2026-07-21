@@ -183,6 +183,38 @@ toque estas partes del sistema más adelante:
    arquitectura, pero confirma el valor de aplicar el seed contra una base real y revisar el
    mensaje de error exacto en vez de asumir que "no dio error" significa que insertó algo.
 
+## Identidad visual por modo y animaciones (post-Fase 3)
+
+Cada modo tiene un color de acento propio (`modes-registry.ts` → `accent`, mapeado a clases
+Tailwind estáticas en `accent-classes.ts` — nunca se concatena `` `border-${accent}` `` dinámicamente
+porque el escáner de Tailwind no detectaría esa clase). Transiciones de estado (tablero → resultado),
+entrada de la home y estrellas escalonadas usan `framer-motion` (`AnimatePresence` + `motion.div`).
+
+**Se intentó, y se revirtió, un layout horizontal para Tournament Timeline** (para que se leyera
+como una línea de tiempo real). Se retiró por dos motivos, no por estar descartada para siempre:
+
+1. Aplicar `layout` de `framer-motion` directamente sobre el mismo elemento que dnd-kit controla
+   (`<motion.li layout>` con el `style.transform` de `useSortable`) rompía el drag de forma real:
+   ambas librerías escriben `transform` en el mismo nodo. dnd-kit ya anima el reordenamiento por su
+   cuenta (vía su propio `transition`), así que `motion.li` ahí era además innecesario.
+2. Un test e2e específico de ese layout en contexto táctil falló de forma consistente (3/3) en un
+   momento dado — probablemente contención de recursos de la máquina de desarrollo tras varias
+   corridas pesadas seguidas (ver nota de `workers` abajo), no necesariamente un bug del layout en
+   sí. No se confirmó cuál de las dos causas era, así que se prefirió no arriesgar antes de
+   investigarlo como una tarea dedicada.
+
+**Bug de test real encontrado en el camino** (no de producto): `tournament-timeline.spec.ts`
+comprobaba que un primer intento sin reordenar casi seguro fallaría — cierto con 6+ tarjetas
+(1/6! ≈ 0.14%), pero con solo 4 tarjetas (1/4! ≈ 4.2%) el shuffle aleatorio del servidor
+coincidía con el orden correcto con la frecuencia suficiente para que el test fallara de forma
+intermitente sin que hubiera ningún bug real. Se quitó esa comprobación específica para timelines
+tan cortos; el comportamiento de "resaltar solo lo incorrecto" ya queda cubierto por
+`career-timeline.spec.ts` (6 tarjetas).
+
+**`playwright.config.ts` fija `workers: 3`**: con el paralelismo por defecto (nº de cores de la
+máquina), lanzar muchos Chromium a la vez contra un único `next dev` producía páginas en blanco y
+timeouts que no eran bugs reales, sino saturación del entorno de desarrollo.
+
 ## Mejoras futuras consideradas (no bloqueantes)
 
 - `pg_cron` de Supabase para pre-generar el daily challenge con antelación, si se quiere anunciar
@@ -190,6 +222,9 @@ toque estas partes del sistema más adelante:
 - Esquema Zod por modo para validar la forma de `events.metadata` desde el panel admin, evitando que
   un dato mal formado rompa un renderer de tarjeta en producción.
 - `next-intl` si en algún momento se quiere soportar más de un idioma (hoy la UI está solo en español).
+- Retomar el layout horizontal para Tournament Timeline (u otros modos con pocos eventos) como una
+  tarea dedicada, con investigación específica de dnd-kit + `horizontalListSortingStrategy` en
+  contexto táctil antes de reintroducirlo.
 
 ## Fases
 

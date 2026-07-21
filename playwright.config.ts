@@ -23,6 +23,10 @@ export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
   retries: 0,
+  // Con el paralelismo por defecto (nº de cores) esta máquina saturaba varios Chromium a la vez
+  // contra un único `next dev`, produciendo fallos intermitentes que no eran bugs reales (páginas
+  // en blanco, timeouts) — no relacionados con el código de la app. 3 es estable en este entorno.
+  workers: 3,
   reporter: "list",
   use: {
     baseURL,

@@ -14,9 +14,10 @@ test("Tournament Timeline: 4 tarjetas, sin fechas visibles, se resuelve y puntú
     expect(boardText).not.toContain(year);
   }
 
-  await page.getByRole("button", { name: "Comprobar" }).click();
-  await expect(page.locator('[data-testid="result-summary"]')).toHaveCount(0);
-
+  // Con solo 4 tarjetas (4! = 24 permutaciones) NO se comprueba aquí "el orden aleatorio inicial
+  // falla casi seguro": ~4% de las veces el shuffle ya sale correcto por pura casualidad, lo que
+  // volvía este test intermitente sin ser un bug real. Ese comportamiento (resaltar solo lo
+  // incorrecto) ya está cubierto por career-timeline.spec.ts con 6 tarjetas (6! ≈ 0.14% de colisión).
   const correctOrder = await getCorrectEventOrder("mundial-catar-momentos-clave");
   await reorderCardsTo(page, correctOrder);
   await page.getByRole("button", { name: "Comprobar" }).click();

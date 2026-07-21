@@ -42,7 +42,7 @@ export function DailyResult({ sessionId, challengeDateISO, score, attempts, elap
   return (
     <Card data-testid="daily-result" className="flex flex-col items-center gap-4 py-10 text-center">
       <CardTitle>Reto diario resuelto</CardTitle>
-      <StarRating stars={score.stars} className="text-2xl" />
+      <StarRating stars={score.stars} className="text-2xl" animate />
       <p className="text-muted">{score.points} puntos</p>
       <dl className="mt-2 grid grid-cols-2 gap-8 text-sm text-muted">
         <div>

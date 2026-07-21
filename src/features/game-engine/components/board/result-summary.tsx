@@ -19,7 +19,7 @@ export function ResultSummary({ timelineTitle, totalEvents, attempts, elapsedMs,
       <p className="text-lg font-semibold text-foreground">
         {totalEvents}/{totalEvents} correcto
       </p>
-      <StarRating stars={stars} className="text-2xl" />
+      <StarRating stars={stars} className="text-2xl" animate />
       <p className="text-muted">{points} puntos</p>
       <dl className="mt-2 grid grid-cols-2 gap-8 text-sm text-muted">
         <div>
