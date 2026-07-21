@@ -14,20 +14,28 @@ if (fs.existsSync(envLocalPath)) {
   }
 }
 
+// Permite apuntar la suite a un despliegue real (ej. Vercel) sin tocar el resto del archivo:
+// PLAYWRIGHT_BASE_URL=https://tu-app.vercel.app npx playwright test
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
+const isRemote = baseURL !== "http://localhost:3000";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
   retries: 0,
   reporter: "list",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL,
   },
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: true,
-    timeout: 60_000,
-  },
+  // Contra un despliegue remoto no hace falta (ni se debe) levantar `npm run dev` local.
+  webServer: isRemote
+    ? undefined
+    : {
+        command: "npm run dev",
+        url: baseURL,
+        reuseExistingServer: true,
+        timeout: 60_000,
+      },
   projects: [
     {
       name: "desktop-chromium",

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { getTodayChallenge, type TodayChallengeAlreadyPlayed } from "@/features/daily-challenge/actions/get-today-challenge";
 import { startSession } from "@/features/game-engine/actions/start-session";
 import { TimelineBoard } from "@/features/game-engine/components/board/timeline-board";
+import { getGameMode } from "@/features/game-engine/domain/modes-registry";
 import type { EventCardData } from "@/features/game-engine/domain/types";
 import { AlreadyPlayedSummary } from "./already-played-summary";
 import { DailyResult } from "./daily-result";
@@ -11,7 +12,14 @@ import { DailyResult } from "./daily-result";
 type State =
   | { status: "loading" }
   | { status: "already_played"; data: TodayChallengeAlreadyPlayed }
-  | { status: "playing"; sessionId: string; cards: EventCardData[]; timelineTitle: string; challengeDateISO: string }
+  | {
+      status: "playing";
+      sessionId: string;
+      cards: EventCardData[];
+      timelineTitle: string;
+      challengeDateISO: string;
+      modeId: string;
+    }
   | { status: "error"; message: string };
 
 export function DailyChallengeClient() {
@@ -36,6 +44,7 @@ export function DailyChallengeClient() {
           cards,
           timelineTitle: result.timelineTitle,
           challengeDateISO: result.challengeDateISO,
+          modeId: result.modeId,
         });
       })
       .catch((error: unknown) => {
@@ -58,20 +67,32 @@ export function DailyChallengeClient() {
     return <AlreadyPlayedSummary data={state.data} />;
   }
 
+  const mode = getGameMode(state.modeId);
+
   return (
-    <TimelineBoard
-      sessionId={state.sessionId}
-      initialCards={state.cards}
-      timelineTitle={state.timelineTitle}
-      renderResult={({ score, attempts, elapsedMs }) => (
-        <DailyResult
-          sessionId={state.sessionId}
-          challengeDateISO={state.challengeDateISO}
-          score={score}
-          attempts={attempts}
-          elapsedMs={elapsedMs}
-        />
-      )}
-    />
+    <div className="flex flex-col gap-4">
+      <div>
+        {mode && (
+          <p className="text-sm text-muted">
+            {mode.icon} {mode.name}
+          </p>
+        )}
+        <h2 className="text-xl font-semibold text-foreground">{state.timelineTitle}</h2>
+      </div>
+      <TimelineBoard
+        sessionId={state.sessionId}
+        initialCards={state.cards}
+        timelineTitle={state.timelineTitle}
+        renderResult={({ score, attempts, elapsedMs }) => (
+          <DailyResult
+            sessionId={state.sessionId}
+            challengeDateISO={state.challengeDateISO}
+            score={score}
+            attempts={attempts}
+            elapsedMs={elapsedMs}
+          />
+        )}
+      />
+    </div>
   );
 }
