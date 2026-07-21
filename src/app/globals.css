@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+/*
+ * Football Timeline usa modo oscuro por defecto (no depende de prefers-color-scheme):
+ * césped oscuro de fondo, blanco tiza para texto, verde como color primario de acción,
+ * y un dorado tipo "tarjeta amarilla" reservado para estrellas y aciertos.
+ */
+@theme {
+  --color-background: #0a120e;
+  --color-surface: #121e17;
+  --color-surface-hover: #182920;
+  --color-border: #223229;
+
+  --color-foreground: #f2f7f4;
+  --color-muted: #8fa89d;
+
+  --color-primary: #22c55e;
+  --color-primary-hover: #16a34a;
+  --color-primary-foreground: #06130a;
+
+  --color-accent: #f5c451;
+  --color-accent-foreground: #241a02;
+
+  --color-success: #22c55e;
+  --color-danger: #ef4444;
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}

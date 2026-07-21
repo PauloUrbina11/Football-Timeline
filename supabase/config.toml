@@ -1,0 +1,25 @@
+# Configuración del CLI de Supabase (https://supabase.com/docs/guides/cli).
+# Tras crear tu proyecto en supabase.com, vincúlalo con:
+#   npx supabase link --project-ref <tu-project-ref>
+# y aplica las migraciones con:
+#   npx supabase db push
+
+project_id = "football-timeline"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+
+[db]
+port = 54322
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]

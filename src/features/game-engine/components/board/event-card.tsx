@@ -1,0 +1,65 @@
+"use client";
+
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { cn } from "@/lib/utils";
+import type { EventCardData } from "@/features/game-engine/domain/types";
+import type { CardCheckState } from "@/features/game-engine/hooks/use-game-session";
+
+export interface EventCardProps {
+  event: EventCardData;
+  position: number;
+  state: CardCheckState;
+}
+
+const stateClasses: Record<CardCheckState, string> = {
+  idle: "border-border",
+  correct: "border-primary ring-1 ring-primary",
+  incorrect: "border-danger ring-1 ring-danger",
+};
+
+// Deliberadamente NO se renderiza `event.displayDate` (revelaría el orden). Tampoco se recibe
+// `description` del servidor durante el juego: ver get_timeline_play_cards en supabase/migrations.
+export function EventCard({ event, position, state }: EventCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: event.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      data-testid="event-card"
+      data-event-id={event.id}
+      data-state={state}
+      className={cn(
+        "flex touch-none select-none items-center gap-4 rounded-xl border bg-surface p-4 outline-none",
+        "cursor-grab transition-colors active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-primary",
+        stateClasses[state],
+        isDragging && "opacity-60 shadow-lg",
+      )}
+    >
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-hover text-sm font-semibold text-muted">
+        {position}
+      </span>
+      <div className="flex-1">
+        <p className="font-medium text-foreground">{event.title}</p>
+      </div>
+      {state === "correct" && (
+        <span aria-label="Posición correcta" className="text-lg text-primary">
+          ✓
+        </span>
+      )}
+      {state === "incorrect" && (
+        <span aria-label="Posición incorrecta" className="text-lg text-danger">
+          ✕
+        </span>
+      )}
+    </li>
+  );
+}
