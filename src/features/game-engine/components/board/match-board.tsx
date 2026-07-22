@@ -39,7 +39,13 @@ function itemLabel(item: MatchCardData): string {
 }
 
 function ItemToken({ item, matchVariant, size }: { item: MatchCardData; matchVariant: MatchVariant; size: number }) {
-  return matchVariant === "name-slots" ? <BallonDorBall year={item.title} size={size} /> : <Jersey label={itemLabel(item)} size={size} />;
+  // El color de la camiseta se deriva del club SIN el sufijo "(N)" (ver stripSlotOrdinalSuffix):
+  // dos etapas en el mismo club deben verse del mismo color, la etiqueta de abajo ya distingue cuál es cuál.
+  return matchVariant === "name-slots" ? (
+    <BallonDorBall year={item.title} size={size} />
+  ) : (
+    <Jersey label={stripSlotOrdinalSuffix(itemLabel(item))} size={size} />
+  );
 }
 
 function DraggableItem({ item, matchVariant, disabled }: { item: MatchCardData; matchVariant: MatchVariant; disabled?: boolean }) {
