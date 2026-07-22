@@ -7,6 +7,7 @@ import { ACCENT_CLASSES } from "@/features/game-engine/domain/accent-classes";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
+import { AuthStatus } from "@/features/auth/components/auth-status";
 
 const cardsContainer = {
   hidden: {},
@@ -24,7 +25,7 @@ export default function HomePage() {
       <header className="border-b border-border">
         <Container className="flex h-16 items-center justify-between">
           <span className="text-lg font-semibold tracking-tight">⚽ Football Timeline</span>
-          <Badge variant="outline">Fase 3 · en construcción</Badge>
+          <AuthStatus />
         </Container>
       </header>
 
@@ -52,7 +53,7 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.2 }}
-              className="mt-8"
+              className="mt-8 flex flex-col gap-4 sm:flex-row"
             >
               <Link href="/daily">
                 <Card className="inline-flex items-center gap-4 bg-surface-hover transition-colors hover:bg-surface">
@@ -64,6 +65,18 @@ export default function HomePage() {
                     <p className="text-sm text-muted">Un timeline nuevo cada día, igual para todos.</p>
                   </div>
                   <Badge variant="default">Jugar</Badge>
+                </Card>
+              </Link>
+              <Link href="/pvp">
+                <Card className="inline-flex items-center gap-4 bg-surface-hover transition-colors hover:bg-surface">
+                  <span className="text-2xl" aria-hidden="true">
+                    ⚔️
+                  </span>
+                  <div className="text-left">
+                    <p className="font-semibold">PvP Online</p>
+                    <p className="text-sm text-muted">Duelo 1v1 en tiempo real, 3 juegos al azar.</p>
+                  </div>
+                  <Badge variant="accent">Jugar</Badge>
                 </Card>
               </Link>
             </motion.div>

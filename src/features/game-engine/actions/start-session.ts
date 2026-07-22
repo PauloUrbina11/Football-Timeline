@@ -26,7 +26,11 @@ interface PlayCardRow {
  * correspondiente (ver src/features/daily-challenge/actions/get-today-challenge.ts), lo que
  * habilita luego `submit_daily_result` y su chequeo de idempotencia.
  */
-export async function startSession(timelineId: string, dailyChallengeId?: string): Promise<StartSessionResult> {
+export async function startSession(
+  timelineId: string,
+  dailyChallengeId?: string,
+  pvpMatchGameId?: string,
+): Promise<StartSessionResult> {
   const supabase = await createClient();
 
   const { data: cardsData, error: cardsError } = await supabase.rpc("get_timeline_play_cards", {
@@ -50,7 +54,7 @@ export async function startSession(timelineId: string, dailyChallengeId?: string
     metadata: row.metadata ?? {},
   }));
 
-  const sessionId = await createGameSession(timelineId, dailyChallengeId);
+  const sessionId = await createGameSession(timelineId, dailyChallengeId, pvpMatchGameId);
 
   return { sessionId, cards };
 }

@@ -3,12 +3,21 @@ import { createClient } from "@/lib/supabase/server";
 import { getOrCreateAnonId } from "@/lib/anon-id";
 
 /**
- * Crea la fila de `game_sessions` compartida por los dos modos de interacción (sort y match).
- * No es una Server Action en sí misma (no lleva "use server"): la invocan start-session.ts y
- * start-match-session.ts, que sí lo son. `difficulty`/`total_events` son placeholders que el
- * trigger `set_session_fields_from_timeline` (0005) sobrescribe siempre con los valores reales.
+ * Crea la fila de `game_sessions` compartida por los tres modos de interacción (sort, match, guess).
+ * No es una Server Action en sí misma (no lleva "use server"): la invocan start-session.ts,
+ * start-match-session.ts y start-guess-session.ts, que sí lo son. `difficulty`/`total_events` son
+ * placeholders que el trigger `set_session_fields_from_timeline` (0005) sobrescribe siempre con
+ * los valores reales.
+ *
+ * `pvpMatchGameId` (opcional): igual que `dailyChallengeId`, enlaza la sesión al juego de un duelo
+ * PvP correspondiente (ver supabase/migrations/0019_pvp_core_schema.sql) — lo usa el Match Engine
+ * para encontrar la sesión de cada jugador al reportar o forzar el cierre de un juego por tiempo.
  */
-export async function createGameSession(timelineId: string, dailyChallengeId?: string): Promise<string> {
+export async function createGameSession(
+  timelineId: string,
+  dailyChallengeId?: string,
+  pvpMatchGameId?: string,
+): Promise<string> {
   const supabase = await createClient();
 
   const { data: userData } = await supabase.auth.getUser();
@@ -24,6 +33,7 @@ export async function createGameSession(timelineId: string, dailyChallengeId?: s
     user_id: userId,
     anon_id: anonId,
     daily_challenge_id: dailyChallengeId ?? null,
+    pvp_match_game_id: pvpMatchGameId ?? null,
     difficulty: "easy",
     total_events: 1,
   });

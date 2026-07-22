@@ -43,6 +43,7 @@ export async function startMatchSession(
   timelineId: string,
   dailyChallengeId?: string,
   matchVariant: MatchVariant = "year-slots",
+  pvpMatchGameId?: string,
 ): Promise<StartMatchSessionResult> {
   const supabase = await createClient();
   const rpcNames = RPC_BY_VARIANT[matchVariant];
@@ -77,7 +78,7 @@ export async function startMatchSession(
     label: row.label,
   }));
 
-  const sessionId = await createGameSession(timelineId, dailyChallengeId);
+  const sessionId = await createGameSession(timelineId, dailyChallengeId, pvpMatchGameId);
 
   return { sessionId, items, slots };
 }

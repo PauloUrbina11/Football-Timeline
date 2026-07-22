@@ -13,7 +13,11 @@ export interface StartGuessSessionResult {
  * devuelve el valor real, solo el event_id, y ni siquiera hace falta en el cliente) y arranca la
  * sesión. El valor secreto vive en `event_secret_values`, protegida por RLS (ver 0013_guess_mode.sql).
  */
-export async function startGuessSession(timelineId: string, dailyChallengeId?: string): Promise<StartGuessSessionResult> {
+export async function startGuessSession(
+  timelineId: string,
+  dailyChallengeId?: string,
+  pvpMatchGameId?: string,
+): Promise<StartGuessSessionResult> {
   const supabase = await createClient();
 
   const { data, error } = await supabase.rpc("get_guess_target", { p_timeline_id: timelineId });
@@ -25,7 +29,7 @@ export async function startGuessSession(timelineId: string, dailyChallengeId?: s
     throw new Error("Este timeline no tiene un reto configurado todavía.");
   }
 
-  const sessionId = await createGameSession(timelineId, dailyChallengeId);
+  const sessionId = await createGameSession(timelineId, dailyChallengeId, pvpMatchGameId);
 
   return { sessionId };
 }
