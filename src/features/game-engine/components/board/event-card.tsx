@@ -5,8 +5,9 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import type { EventCardData } from "@/features/game-engine/domain/types";
 import type { CardCheckState } from "@/features/game-engine/hooks/use-game-session";
-import type { CardVariant, ModeAccent } from "@/features/game-engine/domain/modes-registry";
+import type { BoardLayout, CardVariant, ModeAccent } from "@/features/game-engine/domain/modes-registry";
 import { ACCENT_CLASSES } from "@/features/game-engine/domain/accent-classes";
+import { Avatar } from "./avatar";
 
 export interface EventCardProps {
   event: EventCardData;
@@ -14,6 +15,7 @@ export interface EventCardProps {
   state: CardCheckState;
   accent: ModeAccent;
   cardVariant?: CardVariant;
+  boardLayout?: BoardLayout;
 }
 
 const stateBorderClasses: Record<CardCheckState, string> = {
@@ -29,15 +31,49 @@ function getFlags(event: EventCardData): [string, string] | null {
 
 // Deliberadamente NO se renderiza `event.displayDate` (revelaría el orden). Tampoco se recibe
 // `description` del servidor durante el juego: ver get_timeline_play_cards en supabase/migrations.
-export function EventCard({ event, position, state, accent, cardVariant = "text" }: EventCardProps) {
+export function EventCard({
+  event,
+  position,
+  state,
+  accent,
+  cardVariant = "text",
+  boardLayout = "vertical",
+}: EventCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: event.id });
   const accentClasses = ACCENT_CLASSES[accent];
   const flags = cardVariant === "flags" ? getFlags(event) : null;
+  const isHorizontal = boardLayout === "horizontal";
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
+
+  const positionBadge = (
+    <span
+      className={cn(
+        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-hover text-sm font-semibold",
+        accentClasses.text,
+      )}
+    >
+      {position}
+    </span>
+  );
+
+  const content = flags ? (
+    <p className="flex items-center justify-center gap-3 text-2xl" aria-label="Partido">
+      <span>{flags[0]}</span>
+      <span className="text-sm font-medium text-muted">vs</span>
+      <span>{flags[1]}</span>
+    </p>
+  ) : cardVariant === "avatar" ? (
+    <div className="flex flex-col items-center gap-2">
+      <Avatar name={event.title} size={48} />
+      <p className="text-center text-sm font-medium text-foreground">{event.title}</p>
+    </div>
+  ) : (
+    <p className={cn("font-medium text-foreground", isHorizontal && "text-center text-sm")}>{event.title}</p>
+  );
 
   return (
     <li
@@ -49,32 +85,16 @@ export function EventCard({ event, position, state, accent, cardVariant = "text"
       data-event-id={event.id}
       data-state={state}
       className={cn(
-        "flex touch-none select-none items-center gap-4 rounded-xl border bg-surface p-4 outline-none",
+        "touch-none select-none rounded-xl border bg-surface p-4 outline-none",
         "cursor-grab transition-colors active:cursor-grabbing focus-visible:ring-2",
         accentClasses.focusRing,
         state === "idle" ? "border-border" : stateBorderClasses[state],
         isDragging && "opacity-60 shadow-lg",
+        isHorizontal ? "flex w-32 shrink-0 flex-col items-center gap-2 sm:w-36" : "flex items-center gap-4",
       )}
     >
-      <span
-        className={cn(
-          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-hover text-sm font-semibold",
-          accentClasses.text,
-        )}
-      >
-        {position}
-      </span>
-      <div className="flex-1">
-        {flags ? (
-          <p className="flex items-center justify-center gap-3 text-2xl" aria-label="Partido">
-            <span>{flags[0]}</span>
-            <span className="text-sm font-medium text-muted">vs</span>
-            <span>{flags[1]}</span>
-          </p>
-        ) : (
-          <p className="font-medium text-foreground">{event.title}</p>
-        )}
-      </div>
+      {positionBadge}
+      <div className={isHorizontal ? undefined : "flex-1"}>{content}</div>
       {state === "correct" && (
         <span aria-label="Posición correcta" className="text-lg text-primary">
           ✓

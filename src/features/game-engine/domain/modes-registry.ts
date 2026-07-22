@@ -9,8 +9,14 @@ export type ModeAccent = "primary" | "accent" | "blue" | "rose" | "violet" | "am
  */
 export type ModeInteraction = "sort" | "match";
 
-/** "text": título de la tarjeta (por defecto). "flags": bandera vs bandera, sin texto — ver EventCard. */
-export type CardVariant = "text" | "flags";
+/**
+ * "text": título de la tarjeta (por defecto). "flags": bandera vs bandera, sin texto. "avatar":
+ * iniciales genéricas + nombre (para personas, ej. entrenadores) — ver EventCard.
+ */
+export type CardVariant = "text" | "flags" | "avatar";
+
+/** "vertical" (lista, por defecto) o "horizontal" (línea de tiempo) — ver TimelineBoard. */
+export type BoardLayout = "vertical" | "horizontal";
 
 export interface GameModeDefinition {
   id: GameModeId;
@@ -21,6 +27,7 @@ export interface GameModeDefinition {
   accent: ModeAccent;
   interaction: ModeInteraction;
   cardVariant: CardVariant;
+  boardLayout: BoardLayout;
 }
 
 /**
@@ -30,10 +37,6 @@ export interface GameModeDefinition {
  * Deliberadamente SIN ningún ejemplo de orden cronológico aquí: un ejemplo real coincidiría con
  * un timeline real ya sembrado y revelaría su respuesta antes de jugar (pasó con Tournament
  * Timeline / Mundial de Catar 2022 — ver docs/architecture.md).
- *
- * Se probó (y se revirtió) un layout horizontal para Tournament Timeline: se rompía de forma
- * consistente en contexto táctil combinado con dnd-kit (ver docs/architecture.md). Queda pendiente
- * como experimento futuro dedicado, no como parte de este cambio.
  */
 export const GAME_MODES: readonly GameModeDefinition[] = [
   {
@@ -44,6 +47,7 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
     accent: "primary",
     interaction: "sort",
     cardVariant: "text",
+    boardLayout: "vertical",
   },
   {
     id: "achievement",
@@ -53,15 +57,17 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
     accent: "violet",
     interaction: "sort",
     cardVariant: "text",
+    boardLayout: "vertical",
   },
   {
     id: "club_coach",
     name: "Club Timeline",
-    shortDescription: "Ordena a los entrenadores que dirigieron a un club.",
+    shortDescription: "Ordena a los entrenadores en una línea de tiempo.",
     icon: "📋",
     accent: "blue",
     interaction: "sort",
-    cardVariant: "text",
+    cardVariant: "avatar",
+    boardLayout: "horizontal",
   },
   {
     id: "tournament",
@@ -71,6 +77,7 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
     accent: "rose",
     interaction: "sort",
     cardVariant: "flags",
+    boardLayout: "vertical",
   },
   {
     id: "transfer",
@@ -80,6 +87,7 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
     accent: "amber",
     interaction: "match",
     cardVariant: "text",
+    boardLayout: "vertical",
   },
   {
     id: "ballon_dor",
@@ -89,6 +97,7 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
     accent: "accent",
     interaction: "sort",
     cardVariant: "text",
+    boardLayout: "vertical",
   },
 ] as const;
 

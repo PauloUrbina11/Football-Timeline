@@ -1,15 +1,16 @@
-export interface JerseyColorScheme {
+export interface PaletteColorScheme {
   main: string;
   accent: string;
   text: string;
 }
 
 /**
- * Colores genéricos, NO los colores oficiales de ningún club — es una decisión deliberada
- * (ver docs/architecture.md): evita cualquier problema de marca/trade dress, y evita mantener
- * una tabla club → color real que habría que actualizar a mano por cada club nuevo.
+ * Colores genéricos, NUNCA los colores/escudo/foto reales de ningún club, torneo o persona — es una
+ * decisión deliberada (ver docs/architecture.md): evita cualquier problema de marca/trade dress o de
+ * derecho de imagen, y evita mantener una tabla club/persona → color real que habría que actualizar
+ * a mano por cada entrada nueva. Se usa tanto para camisetas (Jersey) como para avatares (Avatar).
  */
-const PALETTE: readonly JerseyColorScheme[] = [
+const PALETTE: readonly PaletteColorScheme[] = [
   { main: "#ef4444", accent: "#f2f7f4", text: "#f2f7f4" },
   { main: "#2563eb", accent: "#facc15", text: "#f2f7f4" },
   { main: "#111827", accent: "#f2f7f4", text: "#f2f7f4" },
@@ -30,7 +31,7 @@ function hashString(value: string): number {
   return hash;
 }
 
-/** Determinista: la misma etiqueta (ej. nombre de club) siempre da el mismo color. */
-export function getJerseyColors(label: string): JerseyColorScheme {
+/** Determinista: la misma etiqueta (ej. nombre de club o de persona) siempre da el mismo color. */
+export function getPaletteColor(label: string): PaletteColorScheme {
   return PALETTE[hashString(label) % PALETTE.length];
 }

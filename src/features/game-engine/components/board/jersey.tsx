@@ -1,4 +1,4 @@
-import { getJerseyColors } from "@/features/game-engine/domain/jersey-colors";
+import { getPaletteColor } from "@/features/game-engine/domain/palette-colors";
 
 export interface JerseyProps {
   label: string;
@@ -10,7 +10,7 @@ export interface JerseyProps {
  * El nombre del club se muestra debajo como texto, así el color nunca es la única pista.
  */
 export function Jersey({ label, size = 64 }: JerseyProps) {
-  const colors = getJerseyColors(label);
+  const colors = getPaletteColor(label);
 
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">

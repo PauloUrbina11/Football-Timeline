@@ -242,10 +242,9 @@ cambia:
 - La lógica de colocar/quitar/intercambiar elementos vive en `match-placement.ts`, pura y testeada
   (sin React ni Supabase), igual que `verify-order.ts` en su momento — mismo patrón de diseño.
 - **Camisetas genéricas, no oficiales, a propósito**: colores determinados por hash del nombre del
-  club (`jersey-colors.ts`), no los colores reales de ningún club. Evita cualquier problema de marca
-  o trade dress y no requiere mantener una tabla club→color a mano. El mismo criterio aplicará a
-  futuras fotos de entrenador (Club Timeline): avatar genérico, nunca una foto real de una persona
-  identificable sin licencia.
+  club (`palette-colors.ts`, paleta genérica de 10 colores — el mismo picker se reutiliza para los
+  avatares de entrenador de Club Timeline), no los colores reales de ningún club. Evita cualquier
+  problema de marca o trade dress y no requiere mantener una tabla club→color a mano.
 
 ## Variante de tarjeta "flags" (Tournament Timeline)
 
@@ -264,15 +263,42 @@ Las banderas de países son emoji Unicode estándar (`events.metadata.flags`) �
 derechos, a diferencia de escudos de clubes, que sí necesitarían el mismo tratamiento genérico que
 las camisetas de Transfer Timeline si en el futuro se agrega una Champions League.
 
+## Diagrama horizontal con avatares (Club Timeline)
+
+Club Timeline mantiene la mecánica "sort" (sigue siendo ordenar), pero cambia `cardVariant: "avatar"`
+(iniciales genéricas sobre color determinista, ver `avatar.tsx` — nunca una foto real de una persona
+identificable sin licencia) y `boardLayout: "horizontal"` para leerse como un diagrama de línea de
+tiempo en vez de una lista vertical.
+
+**Bug real encontrado y corregido, no solo un artefacto de test**: la primera implementación de
+`boardLayout: "horizontal"` usaba `flex gap-3 overflow-x-auto` (una sola fila con scroll horizontal)
+y `horizontalListSortingStrategy`. En un viewport angosto (probado con el proyecto Playwright
+`mobile-chromium-touch`, ~412px), las 6 tarjetas no caben en una fila y el contenedor necesita hacer
+scroll horizontal. Arrastrar una tarjeta cerca del borde dispara el auto-scroll de dnd-kit, que
+desplaza el contenedor a mitad del gesto — el punto de destino final queda en una posición de pantalla
+distinta a la que tenía cuando arrancó el drag. Se reprodujo de forma consistente (4/5 corridas
+fallaban) con drags programáticos hacia coordenadas fijas; un usuario real con feedback visual
+continuo lo sufriría en menor medida, pero sigue siendo un gesto frágil en pantallas angostas, así
+que se trata como bug de producto, no solo de test.
+
+**Fix**: se cambió el contenedor horizontal a `flex flex-wrap` (sin `overflow-x-auto`) y la estrategia
+de dnd-kit a `rectSortingStrategy` (pensada para grillas que envuelven en varias filas, a diferencia
+de `horizontalListSortingStrategy` que asume una sola fila). Así la página vuelve a hacer scroll
+vertical normal — el mismo mecanismo que ya funciona de forma fiable en todos los demás modos — en
+vez de competir con un scroll horizontal anidado durante el drag. Verificado con 5 corridas limpias
+consecutivas en aislamiento (`--workers=1`) en ambos proyectos de Playwright tras el cambio.
+
+`tests/e2e/helpers.ts`: `dragCard`/`reorderCardsTo` ahora aceptan un parámetro `axis` ("y" por
+defecto, "x" para tableros horizontales) que decide sobre qué eje aplicar el sesgo hacia el borde del
+destino, y llaman a `scrollIntoViewIfNeeded()` sobre la tarjeta destino antes de medir su posición
+(sigue siendo necesario con `flex-wrap`: con muchas tarjetas, filas más abajo pueden estar fuera de
+la vista y su posición de layout no es la misma que su posición real en pantalla hasta que se
+desplaza la página).
+
 ## Rediseños de modos pendientes (en curso)
 
 Decididos con el propietario del producto, todavía no construidos:
 
-- **Club Timeline**: pasa a modo "match" con un diagrama de línea de tiempo horizontal y un avatar
-  genérico por entrenador (no una foto real, mismo motivo que las camisetas). Nota: ya se intentó y
-  se revirtió un layout horizontal para Tournament (ver sección de animaciones); si esta línea de
-  tiempo horizontal reutiliza `horizontalListSortingStrategy` de dnd-kit, hay que volver a probarlo
-  con cuidado en contexto táctil antes de darlo por bueno.
 - **Achievement Timeline**: se quitan los eventos de debut y retiro, dejando solo premios/logros
   individuales y colectivos; el layout pasa de lista vertical a una grilla con forma de camino
   (tipo tablero de juego de mesa), probablemente reutilizando el mismo patrón de "casilleros fijos"
@@ -287,9 +313,9 @@ Decididos con el propietario del producto, todavía no construidos:
 - Esquema Zod por modo para validar la forma de `events.metadata` desde el panel admin, evitando que
   un dato mal formado rompa un renderer de tarjeta en producción.
 - `next-intl` si en algún momento se quiere soportar más de un idioma (hoy la UI está solo en español).
-- Retomar el layout horizontal para Tournament Timeline (u otros modos con pocos eventos) como una
-  tarea dedicada, con investigación específica de dnd-kit + `horizontalListSortingStrategy` en
-  contexto táctil antes de reintroducirlo.
+- Retomar el layout horizontal para Tournament Timeline (u otros modos con pocos eventos), ahora que
+  Club Timeline ya validó el patrón `flex-wrap` + `rectSortingStrategy` (ver sección dedicada arriba)
+  como la forma correcta de hacerlo sin el bug de auto-scroll + drag.
 
 ## Fases
 

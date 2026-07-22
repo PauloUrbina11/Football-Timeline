@@ -80,6 +80,7 @@ export function PlayTimelineClient({ timelineId, timelineTitle, modeId }: PlayTi
       timelineTitle={timelineTitle}
       accent={mode?.accent}
       cardVariant={mode?.cardVariant}
+      boardLayout={mode?.boardLayout}
     />
   );
 }

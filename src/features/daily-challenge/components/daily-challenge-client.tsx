@@ -152,6 +152,7 @@ export function DailyChallengeClient() {
         timelineTitle={state.timelineTitle}
         accent={mode?.accent}
         cardVariant={mode?.cardVariant}
+        boardLayout={mode?.boardLayout}
         renderResult={renderDailyResult}
       />
     </div>
