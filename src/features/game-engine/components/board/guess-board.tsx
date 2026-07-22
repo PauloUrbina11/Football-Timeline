@@ -129,7 +129,7 @@ export function GuessBoard({ sessionId, timelineTitle, renderResult }: GuessBoar
               data-testid="guess-input"
               value={numberStr}
               onChange={(event) => setNumberStr(sanitizeGuessNumberInput(event.target.value, numberStr))}
-              placeholder="Ej: 222"
+              placeholder="Ej: 100"
               disabled={status === "checking"}
               className="h-11 w-24 rounded-full border border-border bg-surface px-4 text-center text-lg font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary"
             />
