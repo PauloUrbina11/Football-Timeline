@@ -15,6 +15,16 @@ arquitectura y del desglose fase por fase en `docs/architecture.md`.
 - [x] **Fase 3 — Los 6 modos + daily challenge**: Achievement, Club, Tournament y Transfer Timeline
       jugables; reto diario idéntico para todos, idempotente, con resultado compartible (texto +
       imagen Open Graph) sin espóilers.
+- [x] **Rediseño de modos post-Fase 3**: Club (diagrama horizontal de entrenadores), Achievement
+      (grilla en forma de camino), Career/Transfer fusionados con un modo "adivinar" (adivina el
+      valor de un fichaje, con pistas de más alto/más bajo) y Ballon d'Or convertido en modo
+      "emparejar" invertido (balón de un año → jugador que lo ganó).
+- [x] **Ballon d'Or Timeline con historial completo**: los 69 Balones de Oro reales (1956-2025, sin
+      contar 2020) están cargados como datos históricos. Cada partida elige al azar 4 ediciones
+      consecutivas de las 66 ventanas posibles (repetidos incluidos) — cuanto más antigua la
+      ventana, mayor la dificultad y el multiplicador de puntos. Si un jugador aparece dos veces en
+      la misma ventana, su casillero se etiqueta con el ordinal real de ese título en su carrera
+      (p. ej. "Messi (5)") para eliminar la ambigüedad sin inventar datos.
 - [ ] **Fase 4** — Autenticación + perfil + estadísticas + ranking + logros + racha.
 - [ ] **Fase 5** — Panel admin + importación CSV.
 
@@ -42,7 +52,7 @@ desde otro dispositivo de tu red, por ejemplo un móvil real para drag & drop t�
 1. Crea un proyecto en [supabase.com/dashboard](https://supabase.com/dashboard).
 2. Completa `.env.local` con `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y
    `SUPABASE_SERVICE_ROLE_KEY` (Project Settings → API).
-3. Aplica, **en orden**, todos los archivos de `supabase/migrations/` (numerados 0001 a 0009) y
+3. Aplica, **en orden**, todos los archivos de `supabase/migrations/` (numerados 0001 a 0016) y
    luego los de `supabase/seed/` — vía el SQL Editor del dashboard (copiar/pegar cada archivo y
    ejecutar) o con la CLI si tienes conectividad IPv6 o el connection string del pooler:
 
@@ -51,9 +61,14 @@ desde otro dispositivo de tu red, por ejemplo un móvil real para drag & drop t�
    npx supabase db push
    ```
 
-   > Los archivos `0006_*`, `0007_*` y `0009_*` son parches sobre bugs reales encontrados durante
-   > las Fases 2 y 3 (ver `docs/architecture.md`); en una base nueva se aplican igual que cualquier
-   > otra migración.
+   > Los archivos `0006_*`, `0007_*`, `0009_*` y `0015_*` son parches sobre bugs reales encontrados
+   > durante el desarrollo (ver `docs/architecture.md`); en una base nueva se aplican igual que
+   > cualquier otra migración, en orden numérico.
+   >
+   > Dentro de `supabase/seed/`, `ballon_dor_full_history.sql` carga los 69 Balones de Oro reales y
+   > debe aplicarse **después** de las migraciones 0011-0016 (dependen de las funciones de esa
+   > migración); `ballon_dor_backfill_missing_editions.sql` es un parche de datos que corrige 10
+   > ediciones que quedaron sin etiquetar por un seed anterior y se aplica justo después.
 
 4. (Opcional) Regenera los tipos de la base de datos:
 
