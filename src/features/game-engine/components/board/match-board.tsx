@@ -92,13 +92,13 @@ function MatchSlot({
       data-slot-index={slot.slotIndex}
       data-state={state}
       className={cn(
-        "flex h-28 w-24 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed bg-surface p-2",
+        "flex min-h-28 w-32 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed bg-surface p-2 py-3",
         stateBorder,
         isOver && "bg-surface-hover",
       )}
     >
       {matchVariant === "name-slots" && <Avatar name={stripSlotOrdinalSuffix(slot.label)} size={28} />}
-      <span className={cn("max-w-20 truncate text-center text-sm font-semibold", accentClasses.text)}>{slot.label}</span>
+      <span className={cn("text-center text-xs font-semibold leading-tight break-words", accentClasses.text)}>{slot.label}</span>
       {placedItem ? (
         <div className="relative flex flex-col items-center gap-1">
           <button
