@@ -37,6 +37,13 @@ export interface ScoreInput {
   attempts: number;
   firstTry: boolean;
   difficulty: DifficultyId;
+  /**
+   * Eje de dificultad independiente del tamaño de la lista (`difficulty` ya cubre eso) — por
+   * ejemplo, qué tan antigua es una ventana de Ballon d'Or Timeline generada al azar (nombres más
+   * antiguos, menos reconocibles, más difícil). 1 por defecto: no cambia nada para timelines que no
+   * lo usan. Espejo de `p_difficulty_multiplier` en `calculate_score_v1` (0014_ballon_dor_random_window.sql).
+   */
+  difficultyMultiplierOverride?: number;
 }
 
 export type Stars = 1 | 2 | 3 | 4 | 5;
@@ -57,9 +64,9 @@ function starsFromRatio(ratio: number, thresholds: readonly [number, number, num
 
 /** Función pura y determinista: mismo input + misma config → mismo resultado. Versionar `config` (no mutar) al ajustar pesos. */
 export function calculateScore(input: ScoreInput, config: ScoringConfig = scoringConfigV1): ScoreResult {
-  const { totalEvents, timeMs, attempts, firstTry, difficulty } = input;
+  const { totalEvents, timeMs, attempts, firstTry, difficulty, difficultyMultiplierOverride = 1 } = input;
 
-  const maxBase = totalEvents * config.basePointsPerEvent;
+  const maxBase = totalEvents * config.basePointsPerEvent * difficultyMultiplierOverride;
   const difficultyMultiplier = config.difficultyMultiplier[difficulty];
 
   const attemptPenalty = Math.min(1, Math.max(0, attempts - 1) * config.attemptPenaltyRate);

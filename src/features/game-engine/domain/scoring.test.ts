@@ -61,6 +61,19 @@ describe("calculateScore", () => {
     expect(calculateScore(input)).toEqual(calculateScore(input));
   });
 
+  it("difficultyMultiplierOverride sube los puntos manteniendo las estrellas (ratio invariante)", () => {
+    const base = { totalEvents: 4, timeMs: 24_000, attempts: 2, firstTry: false, difficulty: "easy" as const };
+    const normal = calculateScore(base);
+    const boosted = calculateScore({ ...base, difficultyMultiplierOverride: 1.5 });
+    expect(boosted.points).toBeGreaterThan(normal.points);
+    expect(boosted.stars).toBe(normal.stars);
+  });
+
+  it("difficultyMultiplierOverride por defecto es 1 (no cambia nada si se omite)", () => {
+    const base = { totalEvents: 6, timeMs: 30_000, attempts: 1, firstTry: true, difficulty: "medium" as const };
+    expect(calculateScore(base)).toEqual(calculateScore({ ...base, difficultyMultiplierOverride: 1 }));
+  });
+
   it.each([
     ["easy", 4],
     ["medium", 6],

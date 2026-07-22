@@ -1,35 +1,16 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { createTestAdminClient } from "./helpers";
 
-const TIMELINE_URL = "/play/ballon_dor/ballon-dor-2004-2007";
-
-test("Ballon d'Or Timeline (modo emparejar invertido): arrastra cada balón al jugador que lo ganó", async ({ page }) => {
-  await page.goto(TIMELINE_URL);
-
+/** Resuelve el tablero ya cargado en `page` (arrastra cada balón al casillero que le corresponde). */
+async function solveBallonDorTimeline(page: Page, slug: string, expectedCount: number) {
   const items = page.locator('[data-testid="match-item"]');
   const slots = page.locator('[data-testid="match-slot"]');
-  await expect(items).toHaveCount(4, { timeout: 15_000 });
-  await expect(slots).toHaveCount(4);
-
-  // Los años SÍ son visibles a propósito en los balones (decisión de diseño de este modo).
-  const boardText = await page.locator("main, body").innerText();
-  for (const year of ["2004", "2005", "2006", "2007"]) {
-    expect(boardText).toContain(year);
-  }
-
-  // Los casilleros muestran el nombre del jugador, en orden alfabético (nunca cronológico:
-  // eso revelaría quién ganó antes que quién, justo lo que este modo no debe espoilear).
-  const slotLabels = (await slots.allInnerTexts()).map((text) => text.trim());
-  expect(slotLabels.some((label) => label.includes("Shevchenko"))).toBe(true);
-  expect(slotLabels.some((label) => label.includes("Cannavaro"))).toBe(true);
-  expect(slotLabels.some((label) => label.includes("Kaká"))).toBe(true);
-  expect(slotLabels.some((label) => label.includes("Ronaldinho"))).toBe(true);
-
-  // "Comprobar" debe estar deshabilitado hasta colocar todos los elementos.
+  await expect(items).toHaveCount(expectedCount, { timeout: 15_000 });
+  await expect(slots).toHaveCount(expectedCount);
   await expect(page.getByRole("button", { name: "Comprobar" })).toBeDisabled();
 
   const admin = createTestAdminClient();
-  const { data: timeline } = await admin.from("timelines").select("id").eq("slug", "ballon-dor-2004-2007").single();
+  const { data: timeline } = await admin.from("timelines").select("id").eq("slug", slug).single();
   const { data: correctRows } = await admin
     .from("timeline_events")
     .select("event_id, correct_order")
@@ -37,7 +18,6 @@ test("Ballon d'Or Timeline (modo emparejar invertido): arrastra cada balón al j
     .order("correct_order");
   const correctOrder = correctRows!.map((row) => row.event_id as string);
 
-  // Coloca cada balón (identificado por su data-event-id) en el casillero que le corresponde.
   for (let slotIndex = 1; slotIndex <= correctOrder.length; slotIndex++) {
     const eventId = correctOrder[slotIndex - 1];
     const item = page.locator(`[data-testid="match-item"][data-event-id="${eventId}"]`);
@@ -61,5 +41,38 @@ test("Ballon d'Or Timeline (modo emparejar invertido): arrastra cada balón al j
 
   const summary = page.locator('[data-testid="result-summary"]');
   await expect(summary).toBeVisible({ timeout: 10_000 });
-  await expect(summary).toContainText("4/4 correcto");
+  await expect(summary).toContainText(`${expectedCount}/${expectedCount} correcto`);
+}
+
+test("Ballon d'Or Timeline: genera una ventana aleatoria de 4 ediciones consecutivas y distintas, y se resuelve", async ({
+  page,
+}) => {
+  await page.goto("/play/ballon_dor");
+  await page.waitForURL(/\/play\/ballon_dor\/.+/, { timeout: 15_000 });
+  const slug = new URL(page.url()).pathname.split("/").pop()!;
+
+  // Nunca debería generarse una ventana con un ganador repetido: los 4 nombres de casillero deben
+  // ser todos distintos (ver generate_random_ballon_dor_window en 0014_ballon_dor_random_window.sql).
+  const slots = page.locator('[data-testid="match-slot"]');
+  await expect(slots).toHaveCount(4, { timeout: 15_000 });
+  const slotLabels = (await slots.allInnerTexts()).map((text) => text.trim());
+  expect(new Set(slotLabels).size).toBe(4);
+
+  // Los años SÍ son visibles a propósito en los balones (decisión de diseño de este modo).
+  const boardText = await page.locator("main, body").innerText();
+  expect(boardText).toMatch(/\b(19[5-9]\d|20[0-2]\d)\b/);
+
+  await solveBallonDorTimeline(page, slug, 4);
+});
+
+test("Ballon d'Or Timeline: dos visitas seguidas generan timelines distintos (no una lista fija)", async ({ page }) => {
+  await page.goto("/play/ballon_dor");
+  await page.waitForURL(/\/play\/ballon_dor\/.+/, { timeout: 15_000 });
+  const firstSlug = new URL(page.url()).pathname.split("/").pop();
+
+  await page.goto("/play/ballon_dor");
+  await page.waitForURL(/\/play\/ballon_dor\/.+/, { timeout: 15_000 });
+  const secondSlug = new URL(page.url()).pathname.split("/").pop();
+
+  expect(firstSlug).not.toBe(secondSlug);
 });

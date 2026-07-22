@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getGameMode } from "@/features/game-engine/domain/modes-registry";
 import { getDifficulty, type DifficultyId } from "@/features/game-engine/domain/types";
+import { generateRandomBallonDorWindow } from "@/features/game-engine/actions/generate-random-ballon-dor-window";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -20,6 +21,14 @@ export default async function PlayModePage({ params }: { params: Promise<{ mode:
   const modeDefinition = getGameMode(mode);
   if (!modeDefinition) {
     notFound();
+  }
+
+  // Ballon d'Or Timeline no tiene una lista fija de timelines para elegir: cada partida genera una
+  // ventana nueva de 4 ediciones al azar entre todo el historial real (ver
+  // supabase/migrations/0014_ballon_dor_random_window.sql), así que se salta directo a jugar.
+  if (mode === "ballon_dor") {
+    const { slug } = await generateRandomBallonDorWindow();
+    redirect(`/play/ballon_dor/${slug}`);
   }
 
   const supabase = await createClient();

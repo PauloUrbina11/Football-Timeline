@@ -359,6 +359,69 @@ Archivar un timeline elegible cambia el conjunto sobre el que `ensure_daily_chal
 que le corresponde a una fecha concreta sí puede cambiar. Se verificó que el reto de hoy sigue
 cayendo en un timeline "sort" (regresión completa en verde) tras el resembrado.
 
+## De timelines curados a mano a ventanas aleatorias (Ballon d'Or Timeline, otra vez)
+
+La sección anterior describe un primer intento: 4-5 timelines de Ballon d'Or curados a mano, cada
+uno con un rango de años elegido explícitamente para no tener ganadores repetidos. El propietario
+del producto lo rechazó explícitamente ("no quiero que cures rangos a mano") y pidió algo distinto:
+cargar el **historial completo real** (todos los ganadores del Balón de Oro, 1956-2025, sin contar
+2020 que no se entregó) y que el juego elija **4 ediciones consecutivas al azar** en cada partida —
+con la dificultad derivada de qué tan antigua es la ventana elegida (más antigua = nombres menos
+reconocibles = más difícil).
+
+**Seed** (`ballon_dor_full_history.sql`): las 69 ediciones reales, cada `events` row etiquetada con
+`metadata->>'ballon_dor_edition' = <año>` — es la única marca que distingue "esto es un ganador de
+Balón de Oro" de cualquier otro evento en la base, sin depender de ningún timeline intermedio.
+Títulos con ordinal para los repetidores ("Lionel Messi gana su octavo Balón de Oro") para que cada
+evento tenga un título distinto (lo exige la guarda `where not exists` de los seeds) y porque queda
+mejor como copy. El timeline curado anterior (`ballon-dor-2004-2007`) se archiva: ya no encaja con
+este mecanismo.
+
+**El problema de los repetidores, resuelto en tiempo de generación en vez de en tiempo de curación**:
+el historial real tiene muchísimos ganadores repetidos consecutivos (Messi 2009-2012, Cristiano
+Ronaldo 2013-2014 y 2016-2017, Cruyff 1973-1974, Platini 1983-1985, van Basten...) — una ventana de
+4 ediciones consecutivas elegida a ciegas podría caer justo ahí y producir casilleros con el mismo
+nombre repetido, ambiguos para el jugador. En vez de pre-filtrar rangos válidos a mano (lo que el
+propietario pidió evitar), `generate_random_ballon_dor_window()`
+(`0014_ballon_dor_random_window.sql`) elige un punto de inicio al azar y **reintenta** (hasta 300
+veces) hasta encontrar una ventana de 4 ganadores todos distintos — con ~69 ediciones y relativamente
+pocos tramos de repetidores, la probabilidad de necesitar más de un par de intentos es baja.
+
+**Por qué se genera un `timelines`/`timeline_events` real por partida, en vez de una sesión "sin
+timeline"**: así se reutiliza el 100% del mecanismo "match, name-slots" ya existente
+(`get_timeline_match_items_by_year`, `get_timeline_match_slots_by_name`, `submit_attempt`,
+`finish_session`, `MatchBoard`) sin ninguna rama especial en el cliente — desde el momento en que la
+RPC devuelve un `slug`, es un timeline como cualquier otro. El costo es una fila nueva en `timelines`
+por cada partida jugada (no se borran); aceptable por ahora, uno de los primeros candidatos si algún
+día se necesita una tarea de limpieza (ver "Mejoras futuras").
+
+**Bug real en la primera versión, encontrado en el primer intento real de jugar**: `generate_random_ballon_dor_window`
+insertaba la fila de `timelines` con `status = 'published'` en el mismo paso, ANTES de insertar sus
+`timeline_events` — pero `trg_timelines_publish_integrity` corre `before insert` y cuenta
+`timeline_events` para `new.id` en ese mismo instante, que siempre es 0 para una fila recién creada.
+La función fallaba el 100% de las veces ("tiene 0 eventos, se esperaban 4"). Todos los seeds ya
+seguían el patrón correcto (insertar en `'draft'`, poblar `timeline_events`, y solo al final
+`UPDATE` a `'published'`) — esta función simplemente no lo seguía. Corregido en
+`0015_fix_ballon_dor_window_publish_order.sql`.
+
+**Dificultad por época, no por tamaño**: la ventana siempre tiene 4 eventos, así que la columna
+`difficulty` (atada a `event_count` por el trigger de integridad de publicación) siempre es `'easy'`
+— usarla para "época" habría sido forzar un significado que no le corresponde. En su lugar,
+`calculate_score_v1` gana un parámetro `p_difficulty_multiplier` (default 1.0, no afecta a ningún
+timeline existente) que la ventana generada rellena vía `timelines.metadata->>'difficulty_multiplier'`
+según qué tan antiguo es su primer año: clásica (<1980) ×1.5, dorada (1980s-90s) ×1.3, moderna
+(2000-2013) ×1.15, reciente (2014+) ×1.0. El multiplicador escala `v_max_base` (la base de puntos),
+así que el *ratio* puntos/máximo-posible —y por lo tanto las estrellas— no cambia con la época: una
+partida perfecta siempre da 5 estrellas, pero una ventana "clásica" perfecta da más puntos en
+términos absolutos que una "reciente" perfecta. `scoring.ts` espeja este parámetro como
+`difficultyMultiplierOverride` (opcional, default 1) para mantener la paridad spec-ejecutable/SQL.
+
+**`/play/ballon_dor` ya no lista timelines para elegir**: genera uno nuevo y redirige de inmediato
+(`generateRandomBallonDorWindow()` + `redirect()` en `src/app/play/[mode]/page.tsx`, con un `if
+(mode === "ballon_dor")` antes de la consulta genérica de listado). Cada visita a este modo es,
+literalmente, un reto distinto — coherente con "al azar" pedido explícitamente, a diferencia de
+elegir entre una lista fija (aunque esa lista tuviera contenido variado).
+
 ## Fusión Career/Transfer y nuevo modo "guess" (adivinar un valor con pistas)
 
 Tras rediseñar Club, Achievement y Ballon d'Or, la evaluación final pedida por el propietario del
