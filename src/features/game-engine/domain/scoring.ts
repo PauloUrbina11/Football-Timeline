@@ -19,6 +19,9 @@ export const scoringConfigV1: ScoringConfig = {
     medium: 1.15,
     hard: 1.3,
     expert: 1.5,
+    // "single" (modo "guess") nunca pasa por esta fórmula — usa guess-scoring.ts / finish_guess_session
+    // en su lugar — pero el tipo exige el valor para las 5 dificultades.
+    single: 1.0,
   },
   attemptPenaltyRate: 0.15,
   idealSecondsPerEvent: 6,

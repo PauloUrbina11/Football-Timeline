@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { getTodayChallenge, type TodayChallengeAlreadyPlayed } from "@/features/daily-challenge/actions/get-today-challenge";
 import { startSession } from "@/features/game-engine/actions/start-session";
 import { startMatchSession } from "@/features/game-engine/actions/start-match-session";
+import { startGuessSession } from "@/features/game-engine/actions/start-guess-session";
 import { TimelineBoard } from "@/features/game-engine/components/board/timeline-board";
 import { MatchBoard } from "@/features/game-engine/components/board/match-board";
+import { GuessBoard } from "@/features/game-engine/components/board/guess-board";
 import { getGameMode } from "@/features/game-engine/domain/modes-registry";
 import type { EventCardData, MatchCardData, SlotLabel } from "@/features/game-engine/domain/types";
 import { AlreadyPlayedSummary } from "./already-played-summary";
@@ -33,6 +35,14 @@ type State =
       challengeDateISO: string;
       modeId: string;
     }
+  | {
+      status: "playing-guess";
+      sessionId: string;
+      timelineTitle: string;
+      timelineDescription: string | null;
+      challengeDateISO: string;
+      modeId: string;
+    }
   | { status: "error"; message: string };
 
 export function DailyChallengeClient() {
@@ -51,6 +61,7 @@ export function DailyChallengeClient() {
           return;
         }
         const mode = getGameMode(result.modeId);
+
         if (mode?.interaction === "match") {
           const { sessionId, items, slots } = await startMatchSession(result.timelineId, result.challengeId, mode.matchVariant);
           setState({
@@ -65,6 +76,20 @@ export function DailyChallengeClient() {
           });
           return;
         }
+
+        if (mode?.interaction === "guess") {
+          const { sessionId } = await startGuessSession(result.timelineId, result.challengeId);
+          setState({
+            status: "playing-guess",
+            sessionId,
+            timelineTitle: result.timelineTitle,
+            timelineDescription: result.timelineDescription,
+            challengeDateISO: result.challengeDateISO,
+            modeId: result.modeId,
+          });
+          return;
+        }
+
         const { sessionId, cards } = await startSession(result.timelineId, result.challengeId);
         setState({
           status: "playing-sort",
@@ -126,6 +151,21 @@ export function DailyChallengeClient() {
       elapsedMs={elapsedMs}
     />
   );
+
+  if (state.status === "playing-guess") {
+    return (
+      <div className="flex flex-col gap-4">
+        {header}
+        <GuessBoard
+          sessionId={state.sessionId}
+          timelineTitle={state.timelineTitle}
+          renderResult={({ score, attempts, elapsedMs }) =>
+            score ? renderDailyResult({ score, attempts, elapsedMs }) : null
+          }
+        />
+      </div>
+    );
+  }
 
   if (state.status === "playing-match") {
     return (

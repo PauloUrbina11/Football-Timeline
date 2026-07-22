@@ -6,7 +6,8 @@ export type GameModeId =
   | "transfer"
   | "ballon_dor";
 
-export type DifficultyId = "easy" | "medium" | "hard" | "expert";
+/** "single": un único reto sin lista que ordenar (modo "guess", ver ModeInteraction). */
+export type DifficultyId = "easy" | "medium" | "hard" | "expert" | "single";
 
 export interface DifficultyDefinition {
   id: DifficultyId;
@@ -19,6 +20,7 @@ export const DIFFICULTIES: readonly DifficultyDefinition[] = [
   { id: "medium", label: "Media", eventCount: 6 },
   { id: "hard", label: "Difícil", eventCount: 8 },
   { id: "expert", label: "Experto", eventCount: 10 },
+  { id: "single", label: "Único", eventCount: 1 },
 ] as const;
 
 export function getDifficulty(id: DifficultyId): DifficultyDefinition {
@@ -53,4 +55,13 @@ export interface MatchCardData {
 export interface SlotLabel {
   slotIndex: number;
   label: string;
+}
+
+/** Resultado de un intento en un modo "guess" (ver ModeInteraction en modes-registry.ts). */
+export type GuessResult = "higher" | "lower" | "correct";
+
+export interface GuessAttemptRecord {
+  attemptNumber: number;
+  guessValueEur: number;
+  result: GuessResult;
 }

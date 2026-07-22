@@ -359,7 +359,68 @@ Archivar un timeline elegible cambia el conjunto sobre el que `ensure_daily_chal
 que le corresponde a una fecha concreta sí puede cambiar. Se verificó que el reto de hoy sigue
 cayendo en un timeline "sort" (regresión completa en verde) tras el resembrado.
 
+## Fusión Career/Transfer y nuevo modo "guess" (adivinar un valor con pistas)
+
+Tras rediseñar Club, Achievement y Ballon d'Or, la evaluación final pedida por el propietario del
+producto encontró un solapamiento real que ningún cambio de mecánica anterior había tocado: **Career
+Timeline y la Transfer Timeline original exploraban el mismo tema** ("los clubes de un jugador"),
+solo que Transfer ya usaba la mecánica "match" y Career seguía en "sort". El fix no era de mecánica
+sino de contenido — dos modos distintos preguntando esencialmente lo mismo — y el propietario pidió
+explícitamente fusionarlos y usar el hueco libre para un modo con una idea completamente nueva.
+
+**La fusión**: Career Timeline pasa de "sort" a `interaction: "match", matchVariant: "year-slots"`
+— exactamente la mecánica que tenía Transfer. Su seed real (Cristiano Ronaldo: 6 clubes, 6 años
+distintos, `correct_order` ya ascendente) resultó ser 100% compatible con esa mecánica sin tocar un
+solo evento, porque `get_timeline_match_cards`/`get_timeline_slot_labels` (0011) son genéricas por
+`timeline_id`, no por modo. El timeline de Zlatan Ibrahimović (antes bajo `mode_id='transfer'`) se
+mudó con un simple `update timelines set mode_id = 'career'`
+(`career_transfer_merge_and_value_mode.sql`) — sigue siendo el mismo contenido y la misma mecánica,
+solo cambia debajo de qué modo vive.
+
+**El modo nuevo, "guess"** (`ModeInteraction`, junto a "sort" y "match"): adivinar un único valor
+numérico secreto — el valor real de un fichaje histórico, en euros — con pistas de "más alto"/"más
+bajo" tras cada intento, hasta acertar o rendirse. Reutiliza `game_sessions`/`scores` sin cambios
+(gracias a la nueva dificultad `difficulties.id = 'single'`, `event_count = 1`: un "timeline" de este
+modo tiene exactamente un `timeline_events`), pero necesitó piezas nuevas porque no hay ni lista que
+ordenar ni pool que emparejar — solo un valor y un contador de intentos (`0013_guess_mode.sql`):
+
+- **`event_secret_values(event_id, value_eur)`, con RLS admin-only** — el hallazgo de seguridad más
+  importante de esta sección: `events.metadata` tiene lectura pública (policy `events_public_read`,
+  sin distinguir qué claves del jsonb son "seguras" de cuáles no), así que guardar el valor real ahí
+  habría permitido a cualquiera consultarlo directo vía la API de Supabase con la clave `anon`, sin
+  jugar. Se guarda en una tabla aparte, con el mismo criterio que ya protege `timeline_events.correct_order`.
+- **`guess_attempts`**, análoga a `game_attempts` pero para un valor numérico en vez de un array de
+  posiciones — no se reutilizó `game_attempts` porque su forma (`submitted_order uuid[]`,
+  `correct_positions boolean[]`) no tiene sentido para un único número.
+- **Tres RPCs nuevas**: `get_guess_target` (solo el `event_id`, nunca el valor — ni siquiera hace
+  falta en el cliente hoy, pero confirma que el timeline tiene un reto configurado antes de arrancar
+  la sesión), `check_guess_attempt` (compara el intento contra el valor real server-side, devuelve
+  `'higher' | 'lower' | 'correct'`, nunca el valor salvo que sea exacto), y `finish_guess_session`
+  (cierra la sesión y **siempre** revela `actual_value_eur` al terminar — acertado o abandonado — es
+  la única forma en que el jugador se entera del valor real si se rinde).
+- **Fórmula de puntuación propia** (`guess-scoring.ts` + `finish_guess_session`, mismo patrón de
+  "TS puro es la especificación ejecutable, SQL es la versión autoritativa" que `scoring.ts`): sin
+  `totalEvents`, la base es fija y la penalización depende directamente de cuántos intentos de
+  "más alto/más bajo" hicieron falta, más una bonificación si se acertó al primer intento.
+- **`GuessBoard`** (nuevo componente, no reutiliza `TimelineBoard`/`MatchBoard`): input numérico +
+  botón "Adivinar", historial de intentos con pista visual (⬆️/⬇️/✅) por intento, y botón "Rendirse".
+
+**Contenido real**: el fichaje de Neymar del FC Barcelona al Paris Saint-Germain en 2017, por
+222.000.000 € — la cláusula de rescisión que pagó el PSG, un hecho público y verificable sin
+ambigüedad de moneda (a diferencia de fichajes cuya cifra original se pactó en libras o dólares).
+
+**Alcance de esta primera versión, deliberadamente reducido**: el nuevo timeline de Neymar se sembró
+con `is_daily_eligible = false`. Integrarlo al reto diario exigiría además adaptar `submit_daily_result`
+(hoy construye la cuadrícula compartible a partir de `game_attempts.correct_positions`, que no existe
+en modo "guess" — habría que decidir qué cuadrícula tiene sentido para una serie de pistas
+más-alto/más-bajo) y la imagen OG dinámica. Se deja como mejora futura explícita en vez de forzarlo
+ahora; jugarlo desde `/play/transfer/neymar-psg-transfer-value` funciona igual sin esa integración.
+
 ## Mejoras futuras consideradas (no bloqueantes)
+
+- Integrar el modo "guess" al reto diario: decidir la representación de la cuadrícula compartible
+  para una serie de pistas más-alto/más-bajo (no hay "posiciones correctas" que colorear) y adaptar
+  `submit_daily_result`/la imagen OG en consecuencia.
 
 - `pg_cron` de Supabase para pre-generar el daily challenge con antelación, si se quiere anunciar
   "el reto de mañana" sin exponer su contenido antes de tiempo.

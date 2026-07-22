@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { startSession } from "@/features/game-engine/actions/start-session";
 import { startMatchSession } from "@/features/game-engine/actions/start-match-session";
+import { startGuessSession } from "@/features/game-engine/actions/start-guess-session";
 import { getGameMode } from "@/features/game-engine/domain/modes-registry";
 import type { EventCardData, MatchCardData, SlotLabel } from "@/features/game-engine/domain/types";
 import { TimelineBoard } from "./timeline-board";
 import { MatchBoard } from "./match-board";
+import { GuessBoard } from "./guess-board";
 
 export interface PlayTimelineClientProps {
   timelineId: string;
@@ -18,13 +20,14 @@ type LoadState =
   | { status: "loading" }
   | { status: "ready-sort"; sessionId: string; cards: EventCardData[] }
   | { status: "ready-match"; sessionId: string; items: MatchCardData[]; slots: SlotLabel[] }
+  | { status: "ready-guess"; sessionId: string }
   | { status: "error"; message: string };
 
 /**
  * Arranca la sesión de juego desde el cliente (no desde el Server Component de la página):
- * `startSession`/`startMatchSession` necesitan poder escribir la cookie de `anon_id`, y Next.js
- * solo permite mutar cookies dentro de una invocación real de Server Action, no durante el render
- * de una página.
+ * `startSession`/`startMatchSession`/`startGuessSession` necesitan poder escribir la cookie de
+ * `anon_id`, y Next.js solo permite mutar cookies dentro de una invocación real de Server Action,
+ * no durante el render de una página.
  */
 export function PlayTimelineClient({ timelineId, timelineTitle, modeId }: PlayTimelineClientProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
@@ -43,7 +46,9 @@ export function PlayTimelineClient({ timelineId, timelineTitle, modeId }: PlayTi
         ? startMatchSession(timelineId, undefined, mode.matchVariant).then(({ sessionId, items, slots }) =>
             setState({ status: "ready-match", sessionId, items, slots }),
           )
-        : startSession(timelineId).then(({ sessionId, cards }) => setState({ status: "ready-sort", sessionId, cards }));
+        : mode?.interaction === "guess"
+          ? startGuessSession(timelineId).then(({ sessionId }) => setState({ status: "ready-guess", sessionId }))
+          : startSession(timelineId).then(({ sessionId, cards }) => setState({ status: "ready-sort", sessionId, cards }));
 
     load.catch((error: unknown) => {
       setState({
@@ -59,6 +64,10 @@ export function PlayTimelineClient({ timelineId, timelineTitle, modeId }: PlayTi
 
   if (state.status === "error") {
     return <p className="text-danger">{state.message}</p>;
+  }
+
+  if (state.status === "ready-guess") {
+    return <GuessBoard sessionId={state.sessionId} timelineTitle={timelineTitle} />;
   }
 
   if (state.status === "ready-match") {

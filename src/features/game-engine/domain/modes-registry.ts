@@ -6,8 +6,10 @@ export type ModeAccent = "primary" | "accent" | "blue" | "rose" | "violet" | "am
  * "sort": ordenar una lista (mecánica original, TimelineBoard).
  * "match": arrastrar cada elemento a un casillero fijo que revela un dato real (ej. el año) —
  * MatchBoard. Ver supabase/migrations/0011_match_mode_rpcs.sql.
+ * "guess": adivinar un único valor numérico secreto con pistas de "más alto"/"más bajo" —
+ * GuessBoard. Ver supabase/migrations/0013_guess_mode.sql.
  */
-export type ModeInteraction = "sort" | "match";
+export type ModeInteraction = "sort" | "match" | "guess";
 
 /**
  * Solo aplica cuando `interaction === "match"`, decide qué lado revela el dato real:
@@ -55,12 +57,13 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
   {
     id: "career",
     name: "Career Timeline",
-    shortDescription: "Ordena los clubes por los que pasó un jugador.",
+    shortDescription: "Arrastra cada camiseta al año en que el jugador fichó por ese club.",
     icon: "🎽",
     accent: "primary",
-    interaction: "sort",
+    interaction: "match",
     cardVariant: "text",
     boardLayout: "vertical",
+    matchVariant: "year-slots",
   },
   {
     id: "achievement",
@@ -95,13 +98,12 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
   {
     id: "transfer",
     name: "Transfer Timeline",
-    shortDescription: "Arrastra cada camiseta al año en que fue fichado.",
-    icon: "🔄",
+    shortDescription: "Adivina el valor real de un fichaje histórico, en euros.",
+    icon: "💰",
     accent: "amber",
-    interaction: "match",
+    interaction: "guess",
     cardVariant: "text",
     boardLayout: "vertical",
-    matchVariant: "year-slots",
   },
   {
     id: "ballon_dor",
