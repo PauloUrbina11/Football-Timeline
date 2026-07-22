@@ -26,8 +26,11 @@ interface SlotLabelRow {
 const RPC_BY_VARIANT: Record<MatchVariant, { items: string; slots: string }> = {
   // Transfer: casilleros revelan el año; los elementos ocultan la identidad (camiseta genérica).
   "year-slots": { items: "get_timeline_match_cards", slots: "get_timeline_slot_labels" },
-  // Ballon d'Or: al revés — los elementos ya revelan el año (balón); los casilleros revelan el nombre.
-  "name-slots": { items: "get_timeline_match_items_by_year", slots: "get_timeline_match_slots_by_name" },
+  // Ballon d'Or: al revés — los elementos ya revelan el año (balón); los casilleros revelan el
+  // nombre. `get_ballon_dor_match_slots` (no la genérica `get_timeline_match_slots_by_name`) porque
+  // además desambigua jugadores repetidos dentro de la ventana con su ordinal de carrera real
+  // ("Messi (5)") — es lógica específica de Ballon d'Or, hoy el único consumidor de "name-slots".
+  "name-slots": { items: "get_timeline_match_items_by_year", slots: "get_ballon_dor_match_slots" },
 };
 
 /**

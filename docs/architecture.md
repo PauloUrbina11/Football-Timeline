@@ -404,6 +404,34 @@ seguían el patrón correcto (insertar en `'draft'`, poblar `timeline_events`, y
 `UPDATE` a `'published'`) — esta función simplemente no lo seguía. Corregido en
 `0015_fix_ballon_dor_window_publish_order.sql`.
 
+**¿Cuántas combinaciones distintas admite el juego?** Con las 69 ediciones cargadas hay 66
+posiciones de inicio posibles para una ventana de 4 consecutivas. La primera versión descartaba
+(reintentando) cualquier ventana con un ganador repetido — 33 de esas 66 caían en algún tramo de
+repetidor (Messi ×8, Cristiano Ronaldo ×5, Cruyff/Platini/van Basten ×3 cada uno, y varios ×2), así
+que en la práctica solo 33 ventanas eran alcanzables. El propietario del producto pidió explícitamente
+las 66: "no importa si hay rangos con jugadores repetidos".
+
+**Repetidores, resueltos con el ordinal real de carrera en vez de excluidos**
+(`0016_ballon_dor_allow_repeat_winners.sql`): en vez de descartar la ventana, el casillero de un
+jugador que aparece más de una vez se etiqueta con qué Balón de Oro es ESE, en su carrera completa —
+"Lionel Messi (5)" para su quinto, no una posición arbitraria dentro de la ventana. Es un dato real y
+verificable (mismo criterio que revelar el año en Transfer/Career), calculado en
+`get_ballon_dor_match_slots` contando cuántos Balones de Oro tiene ese `subject_id` con
+`ballon_dor_edition` menor o igual al de este evento, sobre TODO el historial (no solo la ventana).
+Reemplaza a la genérica `get_timeline_match_slots_by_name` (0012) solo para este modo — hoy el único
+consumidor de `matchVariant: "name-slots"`, así que vive en el mismo mapa `RPC_BY_VARIANT` de
+`start-match-session.ts` sin ramas nuevas en el cliente.
+
+`generate_random_ballon_dor_window` se simplifica: ya no valida distinción de ganadores ni reintenta,
+solo cambia el desempate al asignar `correct_order` (alfabético por nombre) de "solo nombre" a
+"nombre, luego edición" — así, cuando dos casilleros comparten nombre base, su orden visual en
+pantalla queda determinado por cuál premio es más antiguo. Eso no añade ningún espóiler nuevo: el
+propio sufijo "(5)" vs "(7)" ya revela cuál es anterior.
+
+`Avatar` (para las iniciales del casillero) necesita el nombre SIN el sufijo — `stripSlotOrdinalSuffix`
+(`slot-label.ts`, puro y testeado) lo quita solo para ese cálculo; el texto completo con sufijo sigue
+siendo lo que se muestra en pantalla.
+
 **Dificultad por época, no por tamaño**: la ventana siempre tiene 4 eventos, así que la columna
 `difficulty` (atada a `event_count` por el trigger de integridad de publicación) siempre es `'easy'`
 — usarla para "época" habría sido forzar un significado que no le corresponde. En su lugar,

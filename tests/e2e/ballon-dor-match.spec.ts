@@ -44,15 +44,14 @@ async function solveBallonDorTimeline(page: Page, slug: string, expectedCount: n
   await expect(summary).toContainText(`${expectedCount}/${expectedCount} correcto`);
 }
 
-test("Ballon d'Or Timeline: genera una ventana aleatoria de 4 ediciones consecutivas y distintas, y se resuelve", async ({
-  page,
-}) => {
+test("Ballon d'Or Timeline: genera una ventana aleatoria de 4 ediciones consecutivas y se resuelve", async ({ page }) => {
   await page.goto("/play/ballon_dor");
   await page.waitForURL(/\/play\/ballon_dor\/.+/, { timeout: 15_000 });
   const slug = new URL(page.url()).pathname.split("/").pop()!;
 
-  // Nunca debería generarse una ventana con un ganador repetido: los 4 nombres de casillero deben
-  // ser todos distintos (ver generate_random_ballon_dor_window en 0014_ballon_dor_random_window.sql).
+  // Ya no se descartan ventanas con un ganador repetido (ver 0016_ballon_dor_allow_repeat_winners.sql):
+  // los 4 TEXTOS de casillero deben ser únicos igual, gracias al sufijo de ordinal de carrera
+  // ("Messi (5)") cuando un jugador se repite — nunca por ausencia de repetidos.
   const slots = page.locator('[data-testid="match-slot"]');
   await expect(slots).toHaveCount(4, { timeout: 15_000 });
   const slotLabels = (await slots.allInnerTexts()).map((text) => text.trim());
@@ -75,4 +74,57 @@ test("Ballon d'Or Timeline: dos visitas seguidas generan timelines distintos (no
   const secondSlug = new URL(page.url()).pathname.split("/").pop();
 
   expect(firstSlug).not.toBe(secondSlug);
+});
+
+test("Ballon d'Or Timeline: un jugador repetido en la ventana se etiqueta con su ordinal de carrera real", async () => {
+  const admin = createTestAdminClient();
+
+  // Construye directamente (sin pasar por la generación aleatoria) una ventana con Messi repetido
+  // dos veces, para probar get_ballon_dor_match_slots de forma determinista.
+  const { data: messi } = await admin.from("subjects").select("id").eq("slug", "lionel-messi").single();
+  const { data: messiEvents } = await admin
+    .from("events")
+    .select("id, metadata")
+    .eq("subject_id", messi!.id)
+    .not("metadata->ballon_dor_edition", "is", null)
+    .order("metadata->ballon_dor_edition")
+    .limit(2);
+  const { data: otherEvents } = await admin
+    .from("events")
+    .select("id, subject_id")
+    .not("metadata->ballon_dor_edition", "is", null)
+    .neq("subject_id", messi!.id)
+    .limit(2);
+
+  const { data: timeline } = await admin
+    .from("timelines")
+    .insert({
+      mode_id: "ballon_dor",
+      difficulty: "easy",
+      title: "Test: Messi repetido",
+      slug: `test-messi-repetido-${Date.now()}`,
+      status: "draft",
+      is_daily_eligible: false,
+    })
+    .select("id")
+    .single();
+
+  await admin.from("timeline_events").insert([
+    { timeline_id: timeline!.id, event_id: otherEvents![0].id, correct_order: 1 },
+    { timeline_id: timeline!.id, event_id: otherEvents![1].id, correct_order: 2 },
+    { timeline_id: timeline!.id, event_id: messiEvents![0].id, correct_order: 3 },
+    { timeline_id: timeline!.id, event_id: messiEvents![1].id, correct_order: 4 },
+  ]);
+  await admin.from("timelines").update({ status: "published", published_at: new Date().toISOString() }).eq("id", timeline!.id);
+
+  const { data: slots, error } = await admin.rpc("get_ballon_dor_match_slots", { p_timeline_id: timeline!.id });
+  expect(error).toBeNull();
+
+  const messiSlots = slots!.filter((s: { label: string }) => s.label.startsWith("Lionel Messi"));
+  expect(messiSlots).toHaveLength(2);
+  expect(messiSlots.every((s: { label: string }) => /Lionel Messi \(\d\)/.test(s.label))).toBe(true);
+  // Distintos entre sí: el sufijo evita la ambigüedad de dos casilleros idénticos.
+  expect(messiSlots[0].label).not.toBe(messiSlots[1].label);
+
+  await admin.from("timelines").delete().eq("id", timeline!.id);
 });

@@ -11,6 +11,7 @@ import type { MatchCardData, SlotLabel } from "@/features/game-engine/domain/typ
 import type { MatchVariant, ModeAccent } from "@/features/game-engine/domain/modes-registry";
 import type { CardCheckState, FinalScore } from "@/features/game-engine/hooks/use-game-session";
 import { ACCENT_CLASSES } from "@/features/game-engine/domain/accent-classes";
+import { stripSlotOrdinalSuffix } from "@/features/game-engine/domain/slot-label";
 import { Jersey } from "./jersey";
 import { BallonDorBall } from "./ballon-dor-ball";
 import { Avatar } from "./avatar";
@@ -96,7 +97,7 @@ function MatchSlot({
         isOver && "bg-surface-hover",
       )}
     >
-      {matchVariant === "name-slots" && <Avatar name={slot.label} size={28} />}
+      {matchVariant === "name-slots" && <Avatar name={stripSlotOrdinalSuffix(slot.label)} size={28} />}
       <span className={cn("max-w-20 truncate text-center text-sm font-semibold", accentClasses.text)}>{slot.label}</span>
       {placedItem ? (
         <div className="relative flex flex-col items-center gap-1">
