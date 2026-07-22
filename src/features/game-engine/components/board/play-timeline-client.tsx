@@ -40,7 +40,7 @@ export function PlayTimelineClient({ timelineId, timelineTitle, modeId }: PlayTi
 
     const load =
       mode?.interaction === "match"
-        ? startMatchSession(timelineId).then(({ sessionId, items, slots }) =>
+        ? startMatchSession(timelineId, undefined, mode.matchVariant).then(({ sessionId, items, slots }) =>
             setState({ status: "ready-match", sessionId, items, slots }),
           )
         : startSession(timelineId).then(({ sessionId, cards }) => setState({ status: "ready-sort", sessionId, cards }));
@@ -51,7 +51,7 @@ export function PlayTimelineClient({ timelineId, timelineTitle, modeId }: PlayTi
         message: error instanceof Error ? error.message : "No se pudo iniciar la partida.",
       });
     });
-  }, [timelineId, mode?.interaction]);
+  }, [timelineId, mode?.interaction, mode?.matchVariant]);
 
   if (state.status === "loading") {
     return <p className="text-muted">Cargando partida…</p>;
@@ -69,6 +69,7 @@ export function PlayTimelineClient({ timelineId, timelineTitle, modeId }: PlayTi
         slots={state.slots}
         timelineTitle={timelineTitle}
         accent={mode?.accent}
+        matchVariant={mode?.matchVariant}
       />
     );
   }

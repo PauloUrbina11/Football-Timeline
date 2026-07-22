@@ -8,10 +8,12 @@ import { useTimer } from "@/features/game-engine/hooks/use-timer";
 import { formatElapsed } from "@/features/game-engine/domain/format-elapsed";
 import { cn } from "@/lib/utils";
 import type { MatchCardData, SlotLabel } from "@/features/game-engine/domain/types";
-import type { ModeAccent } from "@/features/game-engine/domain/modes-registry";
+import type { MatchVariant, ModeAccent } from "@/features/game-engine/domain/modes-registry";
 import type { CardCheckState, FinalScore } from "@/features/game-engine/hooks/use-game-session";
 import { ACCENT_CLASSES } from "@/features/game-engine/domain/accent-classes";
 import { Jersey } from "./jersey";
+import { BallonDorBall } from "./ballon-dor-ball";
+import { Avatar } from "./avatar";
 import { ResultSummary } from "./result-summary";
 
 export interface MatchBoardRenderResultArgs {
@@ -26,6 +28,7 @@ export interface MatchBoardProps {
   slots: SlotLabel[];
   timelineTitle: string;
   accent?: ModeAccent;
+  matchVariant?: MatchVariant;
   renderResult?: (args: MatchBoardRenderResultArgs) => React.ReactNode;
 }
 
@@ -34,7 +37,11 @@ function itemLabel(item: MatchCardData): string {
   return typeof club === "string" ? club : item.title;
 }
 
-function DraggableJersey({ item, disabled }: { item: MatchCardData; disabled?: boolean }) {
+function ItemToken({ item, matchVariant, size }: { item: MatchCardData; matchVariant: MatchVariant; size: number }) {
+  return matchVariant === "name-slots" ? <BallonDorBall year={item.title} size={size} /> : <Jersey label={itemLabel(item)} size={size} />;
+}
+
+function DraggableItem({ item, matchVariant, disabled }: { item: MatchCardData; matchVariant: MatchVariant; disabled?: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: item.id, disabled });
   return (
     <button
@@ -50,8 +57,8 @@ function DraggableJersey({ item, disabled }: { item: MatchCardData; disabled?: b
         isDragging && "opacity-60",
       )}
     >
-      <Jersey label={itemLabel(item)} size={48} />
-      <span className="max-w-20 truncate text-xs text-foreground">{itemLabel(item)}</span>
+      <ItemToken item={item} matchVariant={matchVariant} size={48} />
+      {matchVariant !== "name-slots" && <span className="max-w-20 truncate text-xs text-foreground">{itemLabel(item)}</span>}
     </button>
   );
 }
@@ -61,12 +68,14 @@ function MatchSlot({
   placedItem,
   state,
   accent,
+  matchVariant,
   onRemove,
 }: {
   slot: SlotLabel;
   placedItem: MatchCardData | null;
   state: CardCheckState;
   accent: ModeAccent;
+  matchVariant: MatchVariant;
   onRemove: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `slot-${slot.slotIndex}` });
@@ -87,7 +96,8 @@ function MatchSlot({
         isOver && "bg-surface-hover",
       )}
     >
-      <span className={cn("text-sm font-semibold", accentClasses.text)}>{slot.label}</span>
+      {matchVariant === "name-slots" && <Avatar name={slot.label} size={28} />}
+      <span className={cn("max-w-20 truncate text-center text-sm font-semibold", accentClasses.text)}>{slot.label}</span>
       {placedItem ? (
         <div className="relative flex flex-col items-center gap-1">
           <button
@@ -98,7 +108,7 @@ function MatchSlot({
           >
             ✕
           </button>
-          <Jersey label={itemLabel(placedItem)} size={40} />
+          <ItemToken item={placedItem} matchVariant={matchVariant} size={40} />
         </div>
       ) : (
         <span className="text-xs text-muted">vacío</span>
@@ -107,7 +117,15 @@ function MatchSlot({
   );
 }
 
-export function MatchBoard({ sessionId, items, slots, timelineTitle, accent = "primary", renderResult }: MatchBoardProps) {
+export function MatchBoard({
+  sessionId,
+  items,
+  slots,
+  timelineTitle,
+  accent = "primary",
+  matchVariant = "year-slots",
+  renderResult,
+}: MatchBoardProps) {
   const { pool, placements, slotStates, attempts, status, finalScore, errorMessage, isComplete, place, unplace, reset, checkOrder } =
     useMatchSession(
       sessionId,
@@ -168,6 +186,7 @@ export function MatchBoard({ sessionId, items, slots, timelineTitle, accent = "p
                     placedItem={placements[index] ? itemsById.get(placements[index] as string) ?? null : null}
                     state={slotStates[index]}
                     accent={accent}
+                    matchVariant={matchVariant}
                     onRemove={() => unplace(slot.slotIndex)}
                   />
                 ))}
@@ -179,7 +198,9 @@ export function MatchBoard({ sessionId, items, slots, timelineTitle, accent = "p
               <div className="flex min-h-24 flex-wrap gap-3">
                 {pool.map((eventId) => {
                   const item = itemsById.get(eventId);
-                  return item ? <DraggableJersey key={eventId} item={item} disabled={status === "checking"} /> : null;
+                  return item ? (
+                    <DraggableItem key={eventId} item={item} matchVariant={matchVariant} disabled={status === "checking"} />
+                  ) : null;
                 })}
                 {pool.length === 0 && <p className="text-sm text-muted">Todo colocado.</p>}
               </div>

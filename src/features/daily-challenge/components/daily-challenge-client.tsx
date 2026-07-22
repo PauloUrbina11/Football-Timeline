@@ -52,7 +52,7 @@ export function DailyChallengeClient() {
         }
         const mode = getGameMode(result.modeId);
         if (mode?.interaction === "match") {
-          const { sessionId, items, slots } = await startMatchSession(result.timelineId, result.challengeId);
+          const { sessionId, items, slots } = await startMatchSession(result.timelineId, result.challengeId, mode.matchVariant);
           setState({
             status: "playing-match",
             sessionId,
@@ -137,6 +137,7 @@ export function DailyChallengeClient() {
           slots={state.slots}
           timelineTitle={state.timelineTitle}
           accent={mode?.accent}
+          matchVariant={mode?.matchVariant}
           renderResult={renderDailyResult}
         />
       </div>

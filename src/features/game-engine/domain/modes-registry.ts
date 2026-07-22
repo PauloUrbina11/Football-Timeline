@@ -10,6 +10,15 @@ export type ModeAccent = "primary" | "accent" | "blue" | "rose" | "violet" | "am
 export type ModeInteraction = "sort" | "match";
 
 /**
+ * Solo aplica cuando `interaction === "match"`, decide qué lado revela el dato real:
+ * "year-slots" (Transfer): los casilleros revelan el año; los elementos arrastrables ocultan la
+ * identidad (camiseta genérica). "name-slots" (Ballon d'Or): al revés — los elementos ya muestran
+ * el año (un balón), y se arrastran hacia el casillero con el nombre/avatar del jugador. Ver
+ * supabase/migrations/0012_ballon_dor_reverse_match_rpcs.sql.
+ */
+export type MatchVariant = "year-slots" | "name-slots";
+
+/**
  * "text": título de la tarjeta (por defecto). "flags": bandera vs bandera, sin texto. "avatar":
  * iniciales genéricas + nombre (para personas, ej. entrenadores) — ver EventCard.
  */
@@ -31,6 +40,7 @@ export interface GameModeDefinition {
   interaction: ModeInteraction;
   cardVariant: CardVariant;
   boardLayout: BoardLayout;
+  matchVariant?: MatchVariant;
 }
 
 /**
@@ -91,16 +101,18 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
     interaction: "match",
     cardVariant: "text",
     boardLayout: "vertical",
+    matchVariant: "year-slots",
   },
   {
     id: "ballon_dor",
     name: "Ballon d'Or Timeline",
-    shortDescription: "Ordena a los ganadores del Balón de Oro.",
+    shortDescription: "Arrastra cada balón de oro hacia el jugador que lo ganó.",
     icon: "⭐",
     accent: "accent",
-    interaction: "sort",
+    interaction: "match",
     cardVariant: "text",
     boardLayout: "vertical",
+    matchVariant: "name-slots",
   },
 ] as const;
 

@@ -322,12 +322,42 @@ Al igual que con el layout horizontal de Club Timeline, se usa `rectSortingStrat
 asume una sola fila/columna) y `flex-wrap`/`grid` en vez de scroll anidado. Verificado con 5 corridas
 limpias consecutivas en aislamiento en ambos proyectos de Playwright.
 
-## Rediseños de modos pendientes (en curso)
+## Modo "emparejar" invertido (Ballon d'Or Timeline)
 
-Decididos con el propietario del producto, todavía no construidos:
+Ballon d'Or Timeline pasa de "sort" a "match", igual que Transfer, pero con los lados invertidos:
+en Transfer los casilleros revelan el año y los elementos ocultan la identidad; aquí los elementos
+(un balón dorado genérico, `ballon-dor-ball.tsx` — nunca el logotipo real del trofeo de France
+Football) ya muestran el año, y se arrastran hacia un casillero que revela el nombre/avatar del
+jugador. `modes-registry.ts` añade `matchVariant: "year-slots" | "name-slots"` (solo aplica con
+`interaction: "match"`) para que `start-match-session.ts` y `MatchBoard` sepan qué par de RPCs y qué
+tokens visuales usar por modo, sin duplicar `MatchBoard`/`use-match-session.ts`/`match-placement.ts`
+(siguen siendo 100% genéricos: no les importa qué significan los labels que reciben).
 
-- **Ballon d'Or Timeline**: mismo mecanismo "match" que Transfer, invertido — se arrastra un balón
-  con el año hacia el nombre/foto del jugador (target), en vez de una camiseta hacia un año.
+**Por qué hicieron falta dos RPCs nuevas y no reutilizar las de Transfer** (`0012_ballon_dor_reverse_match_rpcs.sql`,
+mirror de `0011`): en `get_timeline_slot_labels` (Transfer) el slot_index se numera por
+`row_number() over (order by te.correct_order)` — es decir, los casilleros se leen en el orden
+cronológico real. Para años sueltos eso no es un espóiler (ordenar números en ascendente no exige
+saber nada de fútbol), pero para nombres de jugador SÍ lo sería: leer los casilleros de Ballon d'Or
+en su `correct_order` real mostraría literalmente "quién ganó antes que quién", que es justo el
+conocimiento que este modo evalúa. La nueva `get_timeline_match_slots_by_name` numera los casilleros
+por **orden alfabético del nombre** en su lugar — no aporta ninguna pista cronológica.
+
+Esto obliga a resembrar `correct_order` como el **rango alfabético**, no el cronológico, para ese
+timeline (`ballon_dor_2004_2007_match.sql`): `submit_attempt` compara `submitted_order[i]` contra el
+evento cuyo `correct_order = i+1`, así que tiene que coincidir exactamente con el `slot_index` que
+el jugador ve en pantalla. El significado de `correct_order` ("índice de casillero" en vez de
+"posición cronológica") es una decisión de contenido por timeline, no un cambio de esquema ni de RPC.
+
+**El seed original de Ballon d'Or no servía para este mecanismo y se archivó**: "ballon-dor-2015-2023"
+tiene ganadores repetidos (Messi 4 veces, Ronaldo 2 veces) — con casilleros por nombre, eso produciría
+varios casilleros idénticos ("Messi", "Messi", "Messi", "Messi") sin ninguna forma de distinguirlos.
+Se marcó `status = 'archived'`, `is_daily_eligible = false`, y se sembró un timeline nuevo con 4
+ganadores reales y DISTINTOS (Shevchenko 2004, Ronaldinho 2005, Cannavaro 2006, Kaká 2007).
+
+Archivar un timeline elegible cambia el conjunto sobre el que `ensure_daily_challenge` calcula
+`hash(fecha) % nº elegibles` — aunque el conteo total no cambió (uno sale, uno entra), el timeline
+que le corresponde a una fecha concreta sí puede cambiar. Se verificó que el reto de hoy sigue
+cayendo en un timeline "sort" (regresión completa en verde) tras el resembrado.
 
 ## Mejoras futuras consideradas (no bloqueantes)
 
