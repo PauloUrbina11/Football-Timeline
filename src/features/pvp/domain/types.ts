@@ -16,6 +16,7 @@ export interface PvpMatchGameState {
   status: PvpMatchGameStatus;
   startedAt: string | null;
   endsAt: string | null;
+  timeLimitSeconds: number;
   myResult: PvpGameResult | null;
   opponentResult: PvpGameResult | null;
 }

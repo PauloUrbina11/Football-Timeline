@@ -1,0 +1,22 @@
+-- Football Timeline — 0025: corrige "function calculate_score_v1(...) is not unique" (código
+-- Postgres 42725), visto en producción al llamar finish_session durante partidas PvP reales.
+--
+-- Causa real: 0005 creó `calculate_score_v1(int, int, int, boolean, text)` — 5 parámetros. 0014
+-- (Ballon d'Or) le agregó un 6º parámetro con default (`p_difficulty_multiplier numeric default
+-- 1.0`) usando `create or replace function`, pero como el número de parámetros cambió, Postgres NO
+-- reemplazó la función original: la deja intacta y crea una SEGUNDA función con el mismo nombre.
+-- Desde entonces conviven dos overloads. Al llamarla con 5 argumentos (como hace
+-- `finish_session_internal`, igual que ya hacía `finish_session` antes de este módulo), Postgres
+-- encuentra dos candidatos igualmente válidos — la de 5 parámetros exacta, y la de 6 rellenando el
+-- último con su default — y se niega a elegir, abortando la llamada.
+--
+-- Efecto en cascada observado: `finish_session` fallaba con 400 en cada intento de puntuar
+-- normalmente durante un duelo PvP; al no poder completarse ninguna sesión, el plazo de cada juego
+-- terminaba expirando y `advance_pvp_game` forzaba 0 puntos por tiempo agotado para ambos
+-- jugadores — de ahí el "0-0" en las 3 rondas y el empate final. Con este fix, la puntuación
+-- normal vuelve a funcionar y ese síntoma desaparece solo.
+--
+-- Fix: eliminar el overload viejo de 5 parámetros. Solo debe quedar la versión de 6 (con
+-- default), que ya es compatible con cualquier llamada de 5 argumentos.
+
+drop function if exists calculate_score_v1(int, int, int, boolean, text);

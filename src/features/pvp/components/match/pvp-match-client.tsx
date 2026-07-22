@@ -10,6 +10,7 @@ import { startPvpGameSession, type StartPvpGameSessionResult } from "@/features/
 import { usePvpMatch } from "@/features/pvp/hooks/use-pvp-match";
 import { useReportPvpResult } from "@/features/pvp/hooks/use-report-pvp-result";
 import { Countdown } from "./countdown";
+import { PvpCountdownTimer } from "./pvp-countdown-timer";
 import { PlayerVsPlayerHeader } from "./player-vs-player-header";
 import { PvpGameResultCard } from "./pvp-game-result-card";
 import { FinalResultScreen } from "./final-result-screen";
@@ -184,6 +185,12 @@ export function PvpMatchClient({ matchId, initialState }: PvpMatchClientProps) {
   return (
     <div className="flex flex-col gap-6">
       <PlayerVsPlayerHeader state={state} />
+
+      {currentGame && !currentGame.myResult && currentGame.status === "active" && currentGame.endsAt && (
+        <div className="flex justify-center">
+          <PvpCountdownTimer endsAt={currentGame.endsAt} />
+        </div>
+      )}
 
       {startError && <p className="text-sm text-danger">{startError}</p>}
 
