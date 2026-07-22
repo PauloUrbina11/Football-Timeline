@@ -215,6 +215,59 @@ tan cortos; el comportamiento de "resaltar solo lo incorrecto" ya queda cubierto
 máquina), lanzar muchos Chromium a la vez contra un único `next dev` producía páginas en blanco y
 timeouts que no eran bugs reales, sino saturación del entorno de desarrollo.
 
+## Modo de interacción "match" (Transfer Timeline)
+
+Career Timeline y Transfer Timeline resultaron ser, en la práctica, el mismo ejercicio ("ordena los
+clubes de un jugador") cuando se aplican al mismo tipo de contenido — ambos usan tarjetas de texto
+"Fichaje por X" y la misma mecánica de reordenar una lista. Para diferenciarlos de verdad, Transfer
+Timeline pasó a un mecanismo distinto: en vez de reordenar, el jugador arrastra cada elemento
+(una camiseta genérica, ver `jersey.tsx`/`jersey-colors.ts`) a un casillero fijo. Career, Achievement,
+Club y Ballon d'Or siguen usando el ordenamiento en lista; Tournament también, por ahora.
+
+`modes-registry.ts` añade `interaction: "sort" | "match"` por modo. El resto de la arquitectura no
+cambia:
+
+- **El año SÍ se revela en los casilleros, a propósito** (única excepción a "nunca mostrar fechas"):
+  el reto de este modo es "sabes en qué año exacto fue este fichaje", no el orden relativo. Sigue sin
+  revelarse **qué elemento va en cuál casillero** — eso es lo que el jugador debe descubrir, y es
+  exactamente lo que `correct_order` sigue protegiendo.
+- Dos RPCs nuevas y independientes (`get_timeline_match_cards`, `get_timeline_slot_labels`,
+  `supabase/migrations/0011_match_mode_rpcs.sql`) devuelven, por separado, los elementos mezclados
+  (sin año) y los años ya ordenados (sin decir de qué elemento son). Ninguna de las dos expone la
+  pareja evento↔casillero.
+- **La verificación reutiliza `submit_attempt`/`finish_session` sin ningún cambio**: el array que se
+  envía es "para cada casillero, en orden, qué `event_id` se colocó ahí" — tiene la misma forma
+  exacta que un `submitted_order` de los modos de lista. Un casillero *es*, estructuralmente, una
+  posición; no hizo falta ni esquema ni RPCs de verificación nuevos.
+- La lógica de colocar/quitar/intercambiar elementos vive en `match-placement.ts`, pura y testeada
+  (sin React ni Supabase), igual que `verify-order.ts` en su momento — mismo patrón de diseño.
+- **Camisetas genéricas, no oficiales, a propósito**: colores determinados por hash del nombre del
+  club (`jersey-colors.ts`), no los colores reales de ningún club. Evita cualquier problema de marca
+  o trade dress y no requiere mantener una tabla club→color a mano. El mismo criterio aplicará a
+  futuras fotos de entrenador (Club Timeline): avatar genérico, nunca una foto real de una persona
+  identificable sin licencia.
+
+## Rediseños de modos pendientes (en curso)
+
+Decididos con el propietario del producto, todavía no construidos:
+
+- **Tournament Timeline**: tarjeta = bandera vs bandera (sin texto/descripción), con un enunciado
+  fijo arriba del tablero indicando el torneo ("Ordena qué partido fue primero en el Mundial 2022").
+  Las banderas de países son emoji Unicode estándar — sin ningún problema de derechos, a diferencia
+  de escudos de clubes (que sí necesitarían el mismo tratamiento genérico que las camisetas si en el
+  futuro se agrega una Champions League).
+- **Club Timeline**: pasa a modo "match" con un diagrama de línea de tiempo horizontal y un avatar
+  genérico por entrenador (no una foto real, mismo motivo que las camisetas). Nota: ya se intentó y
+  se revirtió un layout horizontal para Tournament (ver sección de animaciones); si esta línea de
+  tiempo horizontal reutiliza `horizontalListSortingStrategy` de dnd-kit, hay que volver a probarlo
+  con cuidado en contexto táctil antes de darlo por bueno.
+- **Achievement Timeline**: se quitan los eventos de debut y retiro, dejando solo premios/logros
+  individuales y colectivos; el layout pasa de lista vertical a una grilla con forma de camino
+  (tipo tablero de juego de mesa), probablemente reutilizando el mismo patrón de "casilleros fijos"
+  de `match-placement.ts` en vez de una lista ordenable.
+- **Ballon d'Or Timeline**: mismo mecanismo "match" que Transfer, invertido — se arrastra un balón
+  con el año hacia el nombre/foto del jugador (target), en vez de una camiseta hacia un año.
+
 ## Mejoras futuras consideradas (no bloqueantes)
 
 - `pg_cron` de Supabase para pre-generar el daily challenge con antelación, si se quiere anunciar

@@ -2,6 +2,13 @@ import type { GameModeId } from "./types";
 
 export type ModeAccent = "primary" | "accent" | "blue" | "rose" | "violet" | "amber";
 
+/**
+ * "sort": ordenar una lista (mecánica original, TimelineBoard).
+ * "match": arrastrar cada elemento a un casillero fijo que revela un dato real (ej. el año) —
+ * MatchBoard. Ver supabase/migrations/0011_match_mode_rpcs.sql.
+ */
+export type ModeInteraction = "sort" | "match";
+
 export interface GameModeDefinition {
   id: GameModeId;
   name: string;
@@ -9,6 +16,7 @@ export interface GameModeDefinition {
   icon: string;
   /** Color de acento del tablero para este modo (ver globals.css) — les da identidad visual propia. */
   accent: ModeAccent;
+  interaction: ModeInteraction;
 }
 
 /**
@@ -30,6 +38,7 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
     shortDescription: "Ordena los clubes por los que pasó un jugador.",
     icon: "🎽",
     accent: "primary",
+    interaction: "sort",
   },
   {
     id: "achievement",
@@ -37,6 +46,7 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
     shortDescription: "Ordena los logros más importantes de la carrera de un jugador.",
     icon: "🏆",
     accent: "violet",
+    interaction: "sort",
   },
   {
     id: "club_coach",
@@ -44,6 +54,7 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
     shortDescription: "Ordena a los entrenadores que dirigieron a un club.",
     icon: "📋",
     accent: "blue",
+    interaction: "sort",
   },
   {
     id: "tournament",
@@ -51,13 +62,15 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
     shortDescription: "Ordena los acontecimientos clave de un torneo.",
     icon: "🌍",
     accent: "rose",
+    interaction: "sort",
   },
   {
     id: "transfer",
     name: "Transfer Timeline",
-    shortDescription: "Ordena los fichajes de un jugador a lo largo de su carrera.",
+    shortDescription: "Arrastra cada camiseta al año en que fue fichado.",
     icon: "🔄",
     accent: "amber",
+    interaction: "match",
   },
   {
     id: "ballon_dor",
@@ -65,6 +78,7 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
     shortDescription: "Ordena a los ganadores del Balón de Oro.",
     icon: "⭐",
     accent: "accent",
+    interaction: "sort",
   },
 ] as const;
 

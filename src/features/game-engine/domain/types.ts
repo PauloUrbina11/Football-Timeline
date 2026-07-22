@@ -41,3 +41,16 @@ export interface EventCardData {
   imageUrl: string | null;
   metadata: Record<string, unknown>;
 }
+
+/** Elemento arrastrable de un modo "match" (ver ModeInteraction en modes-registry.ts). */
+export interface MatchCardData {
+  id: string;
+  title: string;
+  metadata: Record<string, unknown>;
+}
+
+/** Casillero fijo de un modo "match": revela un dato real (ej. el año) a propósito. */
+export interface SlotLabel {
+  slotIndex: number;
+  label: string;
+}

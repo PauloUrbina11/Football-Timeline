@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getOrCreateAnonId } from "@/lib/anon-id";
+import { createGameSession } from "@/features/game-engine/actions/create-game-session";
 import type { EventCardData } from "@/features/game-engine/domain/types";
 
 export interface StartSessionResult {
@@ -29,10 +29,6 @@ interface PlayCardRow {
 export async function startSession(timelineId: string, dailyChallengeId?: string): Promise<StartSessionResult> {
   const supabase = await createClient();
 
-  const { data: userData } = await supabase.auth.getUser();
-  const userId = userData.user?.id ?? null;
-  const anonId = userId ? null : await getOrCreateAnonId();
-
   const { data: cardsData, error: cardsError } = await supabase.rpc("get_timeline_play_cards", {
     p_timeline_id: timelineId,
   });
@@ -54,22 +50,7 @@ export async function startSession(timelineId: string, dailyChallengeId?: string
     metadata: row.metadata ?? {},
   }));
 
-  // Se genera el id en el cliente (servidor) para no depender de `RETURNING` tras el insert:
-  // evita que la policy de SELECT de game_sessions entre en juego solo para leer de vuelta la fila.
-  const sessionId = crypto.randomUUID();
-  const { error: sessionError } = await supabase.from("game_sessions").insert({
-    id: sessionId,
-    timeline_id: timelineId,
-    user_id: userId,
-    anon_id: anonId,
-    daily_challenge_id: dailyChallengeId ?? null,
-    difficulty: "easy",
-    total_events: 1,
-  });
-
-  if (sessionError) {
-    throw new Error(`No se pudo iniciar la partida: ${sessionError.message}`);
-  }
+  const sessionId = await createGameSession(timelineId, dailyChallengeId);
 
   return { sessionId, cards };
 }
