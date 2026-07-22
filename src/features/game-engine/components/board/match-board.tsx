@@ -53,13 +53,15 @@ function DraggableItem({ item, matchVariant, disabled }: { item: MatchCardData; 
       data-testid="match-item"
       data-event-id={item.id}
       className={cn(
-        "flex touch-none select-none flex-col items-center gap-1 rounded-lg border border-border bg-surface p-2 outline-none",
+        "flex w-24 touch-none select-none flex-col items-center gap-1 rounded-lg border border-border bg-surface p-2 outline-none",
         "cursor-grab active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-primary",
         isDragging && "opacity-60",
       )}
     >
       <ItemToken item={item} matchVariant={matchVariant} size={48} />
-      {matchVariant !== "name-slots" && <span className="max-w-20 truncate text-xs text-foreground">{itemLabel(item)}</span>}
+      {matchVariant !== "name-slots" && (
+        <span className="text-center text-xs leading-tight text-foreground break-words">{itemLabel(item)}</span>
+      )}
     </button>
   );
 }
