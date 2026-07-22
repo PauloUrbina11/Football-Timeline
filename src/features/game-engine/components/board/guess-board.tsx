@@ -8,6 +8,7 @@ import { StarRating } from "@/components/ui/star-rating";
 import { useGuessSession, type GuessFinalScore } from "@/features/game-engine/hooks/use-guess-session";
 import { useTimer } from "@/features/game-engine/hooks/use-timer";
 import { formatElapsed } from "@/features/game-engine/domain/format-elapsed";
+import { GUESS_UNIT_LABEL, parseCompactEur, sanitizeGuessNumberInput, type GuessUnit } from "@/features/game-engine/domain/guess-input";
 import { cn } from "@/lib/utils";
 
 export interface GuessBoardRenderResultArgs {
@@ -30,24 +31,20 @@ function formatEur(value: number): string {
   return eurFormatter.format(value);
 }
 
-const resultHint: Record<"higher" | "lower" | "correct", { icon: string; text: string }> = {
-  higher: { icon: "⬆️", text: "El valor real es más alto" },
-  lower: { icon: "⬇️", text: "El valor real es más bajo" },
-  correct: { icon: "✅", text: "¡Correcto!" },
-};
-
 export function GuessBoard({ sessionId, timelineTitle, renderResult }: GuessBoardProps) {
   const { history, attempts, maxAttempts, status, finalScore, actualValueEur, errorMessage, guess, giveUp } = useGuessSession(sessionId);
-  const [inputValue, setInputValue] = useState("");
+  const [numberStr, setNumberStr] = useState("");
+  const [unit, setUnit] = useState<GuessUnit>("M");
   const elapsedMs = useTimer(status !== "finished" && status !== "gave_up");
   const isDone = status === "finished" || status === "gave_up";
+  const parsedValue = parseCompactEur(numberStr, unit);
+  const lastEntry = status === "playing" ? history[history.length - 1] : undefined;
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    const parsed = Number(inputValue.replace(/[^\d]/g, ""));
-    if (!Number.isFinite(parsed) || parsed < 0) return;
-    setInputValue("");
-    void guess(parsed);
+    if (parsedValue === null) return;
+    setNumberStr("");
+    void guess(parsedValue);
   }
 
   return (
@@ -97,44 +94,87 @@ export function GuessBoard({ sessionId, timelineTitle, renderResult }: GuessBoar
             <span aria-live="polite">{formatElapsed(elapsedMs)}</span>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex gap-3">
+          <AnimatePresence mode="wait">
+            {lastEntry && (lastEntry.result === "higher" || lastEntry.result === "lower") && (
+              <motion.div
+                key={lastEntry.attemptNumber}
+                data-testid="guess-hint-banner"
+                data-result={lastEntry.result}
+                initial={{ opacity: 0, scale: 0.85, y: -8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92 }}
+                transition={{ type: "spring", stiffness: 320, damping: 22 }}
+                className={cn(
+                  "flex items-center justify-center gap-3 rounded-2xl border-2 py-6 text-center",
+                  lastEntry.result === "higher" ? "border-blue-500 bg-blue-500/10 text-blue-400" : "border-rose-500 bg-rose-500/10 text-rose-400",
+                )}
+              >
+                <motion.span
+                  aria-hidden="true"
+                  className="text-4xl"
+                  animate={{ y: lastEntry.result === "higher" ? [0, -6, 0] : [0, 6, 0] }}
+                  transition={{ duration: 0.6, repeat: 2 }}
+                >
+                  {lastEntry.result === "higher" ? "⬆️" : "⬇️"}
+                </motion.span>
+                <span className="text-2xl font-bold tracking-tight">{lastEntry.result === "higher" ? "MÁS ALTO" : "MÁS BAJO"}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-3">
             <input
               type="text"
-              inputMode="numeric"
+              inputMode="decimal"
               data-testid="guess-input"
-              value={inputValue}
-              onChange={(event) => setInputValue(event.target.value)}
-              placeholder="Ej: 50000000"
+              value={numberStr}
+              onChange={(event) => setNumberStr(sanitizeGuessNumberInput(event.target.value, numberStr))}
+              placeholder="Ej: 222"
               disabled={status === "checking"}
-              className="h-11 flex-1 rounded-full border border-border bg-surface px-5 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="h-11 w-24 rounded-full border border-border bg-surface px-4 text-center text-lg font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary"
             />
-            <Button type="submit" disabled={status === "checking" || inputValue.trim() === ""}>
+            <div className="flex overflow-hidden rounded-full border border-border" role="group" aria-label="Unidad">
+              {(["k", "M"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  data-testid={`unit-${option}`}
+                  onClick={() => setUnit(option)}
+                  disabled={status === "checking"}
+                  className={cn(
+                    "h-11 px-4 text-sm font-semibold transition-colors",
+                    unit === option ? "bg-primary text-primary-foreground" : "bg-surface text-muted hover:bg-surface-hover",
+                  )}
+                >
+                  {GUESS_UNIT_LABEL[option]}
+                </button>
+              ))}
+            </div>
+            <Button type="submit" disabled={status === "checking" || parsedValue === null}>
               Adivinar
             </Button>
+            {parsedValue !== null && <span className="text-sm text-muted">= {formatEur(parsedValue)}</span>}
           </form>
 
           {errorMessage && <p className="text-sm text-danger">{errorMessage}</p>}
 
           <ol className="flex flex-col gap-2" aria-label="Historial de intentos">
-            {[...history].reverse().map((entry) => {
-              const hint = resultHint[entry.result];
-              return (
-                <li
-                  key={entry.attemptNumber}
-                  data-testid="guess-history-item"
-                  data-result={entry.result}
-                  className={cn(
-                    "flex items-center justify-between rounded-lg border px-4 py-2 text-sm",
-                    entry.result === "correct" ? "border-primary bg-primary/10" : "border-border bg-surface",
-                  )}
-                >
-                  <span className="font-medium text-foreground">{formatEur(entry.guessValueEur)}</span>
-                  <span className="text-muted">
-                    {hint.icon} {hint.text}
-                  </span>
-                </li>
-              );
-            })}
+            {[...history].reverse().map((entry) => (
+              <li
+                key={entry.attemptNumber}
+                data-testid="guess-history-item"
+                data-result={entry.result}
+                className={cn(
+                  "flex items-center justify-between rounded-lg border px-4 py-2 text-sm",
+                  entry.result === "correct" ? "border-primary bg-primary/10" : "border-border bg-surface",
+                )}
+              >
+                <span className="font-medium text-foreground">{formatEur(entry.guessValueEur)}</span>
+                <span className="text-muted">
+                  {entry.result === "correct" ? "✅ ¡Correcto!" : entry.result === "higher" ? "⬆️ más alto" : "⬇️ más bajo"}
+                </span>
+              </li>
+            ))}
           </ol>
 
           <div className="flex justify-end">
