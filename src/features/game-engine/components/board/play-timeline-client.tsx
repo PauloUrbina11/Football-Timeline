@@ -73,5 +73,13 @@ export function PlayTimelineClient({ timelineId, timelineTitle, modeId }: PlayTi
     );
   }
 
-  return <TimelineBoard sessionId={state.sessionId} initialCards={state.cards} timelineTitle={timelineTitle} accent={mode?.accent} />;
+  return (
+    <TimelineBoard
+      sessionId={state.sessionId}
+      initialCards={state.cards}
+      timelineTitle={timelineTitle}
+      accent={mode?.accent}
+      cardVariant={mode?.cardVariant}
+    />
+  );
 }

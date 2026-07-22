@@ -9,6 +9,9 @@ export type ModeAccent = "primary" | "accent" | "blue" | "rose" | "violet" | "am
  */
 export type ModeInteraction = "sort" | "match";
 
+/** "text": título de la tarjeta (por defecto). "flags": bandera vs bandera, sin texto — ver EventCard. */
+export type CardVariant = "text" | "flags";
+
 export interface GameModeDefinition {
   id: GameModeId;
   name: string;
@@ -17,6 +20,7 @@ export interface GameModeDefinition {
   /** Color de acento del tablero para este modo (ver globals.css) — les da identidad visual propia. */
   accent: ModeAccent;
   interaction: ModeInteraction;
+  cardVariant: CardVariant;
 }
 
 /**
@@ -39,6 +43,7 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
     icon: "🎽",
     accent: "primary",
     interaction: "sort",
+    cardVariant: "text",
   },
   {
     id: "achievement",
@@ -47,6 +52,7 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
     icon: "🏆",
     accent: "violet",
     interaction: "sort",
+    cardVariant: "text",
   },
   {
     id: "club_coach",
@@ -55,6 +61,7 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
     icon: "📋",
     accent: "blue",
     interaction: "sort",
+    cardVariant: "text",
   },
   {
     id: "tournament",
@@ -63,6 +70,7 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
     icon: "🌍",
     accent: "rose",
     interaction: "sort",
+    cardVariant: "flags",
   },
   {
     id: "transfer",
@@ -71,6 +79,7 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
     icon: "🔄",
     accent: "amber",
     interaction: "match",
+    cardVariant: "text",
   },
   {
     id: "ballon_dor",
@@ -79,6 +88,7 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
     icon: "⭐",
     accent: "accent",
     interaction: "sort",
+    cardVariant: "text",
   },
 ] as const;
 

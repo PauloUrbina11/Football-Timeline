@@ -16,7 +16,7 @@ import { useGameSession } from "@/features/game-engine/hooks/use-game-session";
 import { useTimer } from "@/features/game-engine/hooks/use-timer";
 import { formatElapsed } from "@/features/game-engine/domain/format-elapsed";
 import type { EventCardData } from "@/features/game-engine/domain/types";
-import type { ModeAccent } from "@/features/game-engine/domain/modes-registry";
+import type { CardVariant, ModeAccent } from "@/features/game-engine/domain/modes-registry";
 import { EventCard } from "./event-card";
 import { ResultSummary } from "./result-summary";
 import type { FinalScore } from "@/features/game-engine/hooks/use-game-session";
@@ -32,6 +32,7 @@ export interface TimelineBoardProps {
   initialCards: EventCardData[];
   timelineTitle: string;
   accent?: ModeAccent;
+  cardVariant?: CardVariant;
   /** Si se indica, sustituye el <ResultSummary> por defecto (lo usa /daily para mostrar el share). */
   renderResult?: (args: TimelineBoardRenderResultArgs) => React.ReactNode;
 }
@@ -41,6 +42,7 @@ export function TimelineBoard({
   initialCards,
   timelineTitle,
   accent = "primary",
+  cardVariant = "text",
   renderResult,
 }: TimelineBoardProps) {
   const { cards, cardStates, attempts, status, finalScore, errorMessage, reorder, shuffle, checkOrder } =
@@ -105,7 +107,14 @@ export function TimelineBoard({
             <SortableContext items={cards.map((card) => card.id)} strategy={verticalListSortingStrategy}>
               <ol className="flex flex-col gap-3">
                 {cards.map((card, index) => (
-                  <EventCard key={card.id} event={card} position={index + 1} state={cardStates[index]} accent={accent} />
+                  <EventCard
+                    key={card.id}
+                    event={card}
+                    position={index + 1}
+                    state={cardStates[index]}
+                    accent={accent}
+                    cardVariant={cardVariant}
+                  />
                 ))}
               </ol>
             </SortableContext>

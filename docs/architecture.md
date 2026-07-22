@@ -247,15 +247,27 @@ cambia:
   futuras fotos de entrenador (Club Timeline): avatar genérico, nunca una foto real de una persona
   identificable sin licencia.
 
+## Variante de tarjeta "flags" (Tournament Timeline)
+
+Tournament Timeline sigue usando la mecánica "sort" (TimelineBoard), pero con una tarjeta distinta:
+`modes-registry.ts` añade `cardVariant: "text" | "flags"` por modo. Cuando es `"flags"`, `EventCard`
+ignora `event.title` y renderiza en su lugar `event.metadata.flags` (un array de 2 emoji) como
+"bandera vs bandera" — sin texto ni resultado, para no revelar quién ganó ni la fase del torneo.
+
+El enunciado específico de cada timeline ("Ordena qué partido fue primero en el Mundial de Catar
+2022.") vive en `timelines.description` y se muestra como instrucción en `/play/[mode]/[slug]` y en
+`/daily` — reemplaza el texto genérico "Ordena las tarjetas..." cuando el timeline lo define. Que la
+instrucción nombre el torneo (incluido su año) no es un espóiler: no dice nada sobre el orden de
+ningún partido en particular, igual que ya pasaba con el título del timeline.
+
+Las banderas de países son emoji Unicode estándar (`events.metadata.flags`) — sin ningún problema de
+derechos, a diferencia de escudos de clubes, que sí necesitarían el mismo tratamiento genérico que
+las camisetas de Transfer Timeline si en el futuro se agrega una Champions League.
+
 ## Rediseños de modos pendientes (en curso)
 
 Decididos con el propietario del producto, todavía no construidos:
 
-- **Tournament Timeline**: tarjeta = bandera vs bandera (sin texto/descripción), con un enunciado
-  fijo arriba del tablero indicando el torneo ("Ordena qué partido fue primero en el Mundial 2022").
-  Las banderas de países son emoji Unicode estándar — sin ningún problema de derechos, a diferencia
-  de escudos de clubes (que sí necesitarían el mismo tratamiento genérico que las camisetas si en el
-  futuro se agrega una Champions League).
 - **Club Timeline**: pasa a modo "match" con un diagrama de línea de tiempo horizontal y un avatar
   genérico por entrenador (no una foto real, mismo motivo que las camisetas). Nota: ya se intentó y
   se revirtió un layout horizontal para Tournament (ver sección de animaciones); si esta línea de

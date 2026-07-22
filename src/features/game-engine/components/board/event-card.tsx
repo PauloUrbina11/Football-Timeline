@@ -5,7 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import type { EventCardData } from "@/features/game-engine/domain/types";
 import type { CardCheckState } from "@/features/game-engine/hooks/use-game-session";
-import type { ModeAccent } from "@/features/game-engine/domain/modes-registry";
+import type { CardVariant, ModeAccent } from "@/features/game-engine/domain/modes-registry";
 import { ACCENT_CLASSES } from "@/features/game-engine/domain/accent-classes";
 
 export interface EventCardProps {
@@ -13,6 +13,7 @@ export interface EventCardProps {
   position: number;
   state: CardCheckState;
   accent: ModeAccent;
+  cardVariant?: CardVariant;
 }
 
 const stateBorderClasses: Record<CardCheckState, string> = {
@@ -21,11 +22,17 @@ const stateBorderClasses: Record<CardCheckState, string> = {
   incorrect: "border-danger ring-1 ring-danger",
 };
 
+function getFlags(event: EventCardData): [string, string] | null {
+  const flags = event.metadata.flags;
+  return Array.isArray(flags) && flags.length === 2 ? (flags as [string, string]) : null;
+}
+
 // Deliberadamente NO se renderiza `event.displayDate` (revelaría el orden). Tampoco se recibe
 // `description` del servidor durante el juego: ver get_timeline_play_cards en supabase/migrations.
-export function EventCard({ event, position, state, accent }: EventCardProps) {
+export function EventCard({ event, position, state, accent, cardVariant = "text" }: EventCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: event.id });
   const accentClasses = ACCENT_CLASSES[accent];
+  const flags = cardVariant === "flags" ? getFlags(event) : null;
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -58,7 +65,15 @@ export function EventCard({ event, position, state, accent }: EventCardProps) {
         {position}
       </span>
       <div className="flex-1">
-        <p className="font-medium text-foreground">{event.title}</p>
+        {flags ? (
+          <p className="flex items-center justify-center gap-3 text-2xl" aria-label="Partido">
+            <span>{flags[0]}</span>
+            <span className="text-sm font-medium text-muted">vs</span>
+            <span>{flags[1]}</span>
+          </p>
+        ) : (
+          <p className="font-medium text-foreground">{event.title}</p>
+        )}
       </div>
       {state === "correct" && (
         <span aria-label="Posición correcta" className="text-lg text-primary">

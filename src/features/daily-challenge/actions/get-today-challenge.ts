@@ -29,6 +29,7 @@ export interface TodayChallengePending {
   challengeId: string;
   timelineId: string;
   timelineTitle: string;
+  timelineDescription: string | null;
   modeId: string;
 }
 
@@ -87,7 +88,7 @@ export async function getTodayChallenge(): Promise<TodayChallengeResult> {
 
   const { data: timeline, error: timelineError } = await supabase
     .from("timelines")
-    .select("id, title, mode_id")
+    .select("id, title, description, mode_id")
     .eq("id", timelineId)
     .single();
 
@@ -101,6 +102,7 @@ export async function getTodayChallenge(): Promise<TodayChallengeResult> {
     challengeId,
     timelineId: timeline.id as string,
     timelineTitle: timeline.title as string,
+    timelineDescription: timeline.description as string | null,
     modeId: timeline.mode_id as string,
   };
 }

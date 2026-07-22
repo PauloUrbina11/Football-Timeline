@@ -6,6 +6,7 @@ import { Container } from "@/components/ui/container";
 interface TimelineRow {
   id: string;
   title: string;
+  description: string | null;
 }
 
 export default async function PlayTimelinePage({
@@ -18,7 +19,7 @@ export default async function PlayTimelinePage({
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("timelines")
-    .select("id, title")
+    .select("id, title, description")
     .eq("mode_id", mode)
     .eq("slug", timelineSlug)
     .eq("status", "published")
@@ -36,7 +37,9 @@ export default async function PlayTimelinePage({
   return (
     <Container className="py-12">
       <h1 className="text-2xl font-bold tracking-tight">{timeline.title}</h1>
-      <p className="mt-1 text-sm text-muted">Ordena las tarjetas cronológicamente y pulsa &quot;Comprobar&quot;.</p>
+      <p className="mt-1 text-sm text-muted">
+        {timeline.description ?? 'Ordena las tarjetas cronológicamente y pulsa "Comprobar".'}
+      </p>
       <div className="mt-8">
         <PlayTimelineClient timelineId={timeline.id} timelineTitle={timeline.title} modeId={mode} />
       </div>

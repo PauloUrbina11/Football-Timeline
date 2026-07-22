@@ -3,21 +3,24 @@ import { getCorrectEventOrder, reorderCardsTo } from "./helpers";
 
 const TIMELINE_URL = "/play/tournament/mundial-catar-momentos-clave";
 
-test("Tournament Timeline: 4 tarjetas, sin fechas visibles, se resuelve y puntúa", async ({ page }) => {
+test("Tournament Timeline: bandera vs bandera, sin texto ni fechas, se resuelve y puntúa", async ({ page }) => {
   await page.goto(TIMELINE_URL);
 
   const cards = page.locator('[data-testid="event-card"]');
   await expect(cards).toHaveCount(4, { timeout: 15_000 });
 
-  const boardText = await page.locator("main, body").innerText();
-  for (const year of ["2022"]) {
-    expect(boardText).not.toContain(year);
+  // El enunciado (instrucción) puede nombrar el torneo y su año — eso no revela el orden de
+  // ningún partido. Lo que nunca debe aparecer es texto/fecha DENTRO de las tarjetas.
+  const cardsText = await cards.allInnerTexts();
+  for (const cardText of cardsText) {
+    expect(cardText).not.toMatch(/\b(19|20)\d{2}\b/);
+    expect(cardText).not.toMatch(/vence a|elimina a/i);
+    expect(cardText).toContain("vs");
   }
 
-  // Con solo 4 tarjetas (4! = 24 permutaciones) NO se comprueba aquí "el orden aleatorio inicial
-  // falla casi seguro": ~4% de las veces el shuffle ya sale correcto por pura casualidad, lo que
-  // volvía este test intermitente sin ser un bug real. Ese comportamiento (resaltar solo lo
-  // incorrecto) ya está cubierto por career-timeline.spec.ts con 6 tarjetas (6! ≈ 0.14% de colisión).
+  const boardText = await page.locator("main, body").innerText();
+  expect(boardText).toContain("Mundial de Catar 2022");
+
   const correctOrder = await getCorrectEventOrder("mundial-catar-momentos-clave");
   await reorderCardsTo(page, correctOrder);
   await page.getByRole("button", { name: "Comprobar" }).click();

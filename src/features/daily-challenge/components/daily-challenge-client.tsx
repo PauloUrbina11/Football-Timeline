@@ -19,6 +19,7 @@ type State =
       sessionId: string;
       cards: EventCardData[];
       timelineTitle: string;
+      timelineDescription: string | null;
       challengeDateISO: string;
       modeId: string;
     }
@@ -28,6 +29,7 @@ type State =
       items: MatchCardData[];
       slots: SlotLabel[];
       timelineTitle: string;
+      timelineDescription: string | null;
       challengeDateISO: string;
       modeId: string;
     }
@@ -57,6 +59,7 @@ export function DailyChallengeClient() {
             items,
             slots,
             timelineTitle: result.timelineTitle,
+            timelineDescription: result.timelineDescription,
             challengeDateISO: result.challengeDateISO,
             modeId: result.modeId,
           });
@@ -68,6 +71,7 @@ export function DailyChallengeClient() {
           sessionId,
           cards,
           timelineTitle: result.timelineTitle,
+          timelineDescription: result.timelineDescription,
           challengeDateISO: result.challengeDateISO,
           modeId: result.modeId,
         });
@@ -101,6 +105,7 @@ export function DailyChallengeClient() {
         </p>
       )}
       <h2 className="text-xl font-semibold text-foreground">{state.timelineTitle}</h2>
+      {state.timelineDescription && <p className="mt-1 text-sm text-muted">{state.timelineDescription}</p>}
     </div>
   );
 
@@ -146,6 +151,7 @@ export function DailyChallengeClient() {
         initialCards={state.cards}
         timelineTitle={state.timelineTitle}
         accent={mode?.accent}
+        cardVariant={mode?.cardVariant}
         renderResult={renderDailyResult}
       />
     </div>
