@@ -59,7 +59,7 @@ desde otro dispositivo de tu red, por ejemplo un móvil real para drag & drop t�
 1. Crea un proyecto en [supabase.com/dashboard](https://supabase.com/dashboard).
 2. Completa `.env.local` con `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y
    `SUPABASE_SERVICE_ROLE_KEY` (Project Settings → API).
-3. Aplica, **en orden**, todos los archivos de `supabase/migrations/` (numerados 0001 a 0022) y
+3. Aplica, **en orden**, todos los archivos de `supabase/migrations/` (numerados 0001 a 0024) y
    luego los de `supabase/seed/` — vía el SQL Editor del dashboard (copiar/pegar cada archivo y
    ejecutar) o con la CLI si tienes conectividad IPv6 o el connection string del pooler:
 
@@ -115,6 +115,10 @@ Duelos 1v1 en `/pvp`. Piezas clave:
   juego — `advance_pvp_game` es idempotente y cualquiera de los 2 clientes la dispara justo al
   vencer el plazo (`ends_at`, calculado por el servidor); fuerza el cierre de quien no terminó a
   tiempo reutilizando el `p_abandon=true` que `finish_session`/`finish_guess_session` ya soportaban.
+- **Salas privadas por código**: además de "Buscar partida" (FIFO al azar), se puede "Crear sala"
+  (genera un código de 6 caracteres para compartir) o "Unirse" con el código de otro — reutiliza la
+  misma cola (`pvp_queue`) y la misma función de creación de match que el emparejamiento aleatorio
+  (`create_pvp_match_for_pair`, 0024), cero lógica duplicada.
 - **Rankings**: mundial e histórico ya tienen página (`get_pvp_leaderboard_world`/`_historical`);
   por país y semanal/mensual tienen su RPC lista (`get_pvp_leaderboard_country`/`_period`) pero sin
   UI todavía — quedan como siguiente paso natural, no requieren esquema nuevo.
