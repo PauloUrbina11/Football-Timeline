@@ -7,6 +7,7 @@ import type { EventCardData } from "@/features/game-engine/domain/types";
 import type { CardCheckState } from "@/features/game-engine/hooks/use-game-session";
 import type { BoardLayout, CardVariant, ModeAccent } from "@/features/game-engine/domain/modes-registry";
 import { ACCENT_CLASSES } from "@/features/game-engine/domain/accent-classes";
+import type { SnakeCell } from "@/features/game-engine/domain/snake-grid";
 import { Avatar } from "./avatar";
 
 export interface EventCardProps {
@@ -16,7 +17,16 @@ export interface EventCardProps {
   accent: ModeAccent;
   cardVariant?: CardVariant;
   boardLayout?: BoardLayout;
+  /** Solo con boardLayout="path": celda de la grilla-serpiente y hacia dónde sigue el camino. */
+  snakeCell?: SnakeCell;
 }
+
+const pathDirectionArrow: Record<SnakeCell["direction"], string> = {
+  right: "→",
+  left: "←",
+  down: "↓",
+  end: "🏁",
+};
 
 const stateBorderClasses: Record<CardCheckState, string> = {
   idle: "border-border",
@@ -38,15 +48,18 @@ export function EventCard({
   accent,
   cardVariant = "text",
   boardLayout = "vertical",
+  snakeCell,
 }: EventCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: event.id });
   const accentClasses = ACCENT_CLASSES[accent];
   const flags = cardVariant === "flags" ? getFlags(event) : null;
   const isHorizontal = boardLayout === "horizontal";
+  const isPath = boardLayout === "path";
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    ...(isPath && snakeCell ? { gridRow: snakeCell.row + 1, gridColumn: snakeCell.col + 1 } : {}),
   };
 
   const positionBadge = (
@@ -90,11 +103,13 @@ export function EventCard({
         accentClasses.focusRing,
         state === "idle" ? "border-border" : stateBorderClasses[state],
         isDragging && "opacity-60 shadow-lg",
-        isHorizontal ? "flex w-32 shrink-0 flex-col items-center gap-2 sm:w-36" : "flex items-center gap-4",
+        isHorizontal && "flex w-32 shrink-0 flex-col items-center gap-2 sm:w-36",
+        isPath && "relative flex flex-col items-center gap-2 text-center",
+        !isHorizontal && !isPath && "flex items-center gap-4",
       )}
     >
       {positionBadge}
-      <div className={isHorizontal ? undefined : "flex-1"}>{content}</div>
+      <div className={isHorizontal || isPath ? undefined : "flex-1"}>{content}</div>
       {state === "correct" && (
         <span aria-label="Posición correcta" className="text-lg text-primary">
           ✓
@@ -103,6 +118,20 @@ export function EventCard({
       {state === "incorrect" && (
         <span aria-label="Posición incorrecta" className="text-lg text-danger">
           ✕
+        </span>
+      )}
+      {isPath && snakeCell && (
+        <span
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute text-lg text-muted",
+            snakeCell.direction === "right" && "top-1/2 -right-5 -translate-y-1/2",
+            snakeCell.direction === "left" && "top-1/2 -left-5 -translate-y-1/2",
+            snakeCell.direction === "down" && "-bottom-5 left-1/2 -translate-x-1/2",
+            snakeCell.direction === "end" && "-bottom-5 left-1/2 -translate-x-1/2",
+          )}
+        >
+          {pathDirectionArrow[snakeCell.direction]}
         </span>
       )}
     </li>

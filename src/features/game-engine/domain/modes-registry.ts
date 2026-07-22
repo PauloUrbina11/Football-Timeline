@@ -15,8 +15,11 @@ export type ModeInteraction = "sort" | "match";
  */
 export type CardVariant = "text" | "flags" | "avatar";
 
-/** "vertical" (lista, por defecto) o "horizontal" (línea de tiempo) — ver TimelineBoard. */
-export type BoardLayout = "vertical" | "horizontal";
+/**
+ * "vertical" (lista, por defecto), "horizontal" (línea de tiempo, ver TimelineBoard) o "path"
+ * (grilla en forma de camino/serpiente, ver snake-grid.ts — Achievement Timeline).
+ */
+export type BoardLayout = "vertical" | "horizontal" | "path";
 
 export interface GameModeDefinition {
   id: GameModeId;
@@ -52,12 +55,12 @@ export const GAME_MODES: readonly GameModeDefinition[] = [
   {
     id: "achievement",
     name: "Achievement Timeline",
-    shortDescription: "Ordena los logros más importantes de la carrera de un jugador.",
+    shortDescription: "Ordena los premios y logros de un jugador en un tablero tipo laberinto.",
     icon: "🏆",
     accent: "violet",
     interaction: "sort",
     cardVariant: "text",
-    boardLayout: "vertical",
+    boardLayout: "path",
   },
   {
     id: "club_coach",

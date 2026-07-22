@@ -22,6 +22,7 @@ import { useTimer } from "@/features/game-engine/hooks/use-timer";
 import { formatElapsed } from "@/features/game-engine/domain/format-elapsed";
 import type { EventCardData } from "@/features/game-engine/domain/types";
 import type { BoardLayout, CardVariant, ModeAccent } from "@/features/game-engine/domain/modes-registry";
+import { getSnakeColumnCount, getSnakeLayout } from "@/features/game-engine/domain/snake-grid";
 import { EventCard } from "./event-card";
 import { ResultSummary } from "./result-summary";
 import type { FinalScore } from "@/features/game-engine/hooks/use-game-session";
@@ -113,17 +114,26 @@ export function TimelineBoard({
           <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
             <SortableContext
               items={cards.map((card) => card.id)}
-              strategy={boardLayout === "horizontal" ? rectSortingStrategy : verticalListSortingStrategy}
+              strategy={boardLayout === "horizontal" || boardLayout === "path" ? rectSortingStrategy : verticalListSortingStrategy}
             >
               {/*
-                "horizontal" usa flex-wrap (no overflow-x-auto): con muchas tarjetas en una pantalla
-                angosta, un scroll horizontal anidado compite con el propio gesto de arrastre táctil
-                (el auto-scroll de dnd-kit desplaza el contenedor a mitad de un drag, y el punto de
-                destino calculado antes de soltar queda obsoleto) — confirmado de forma reproducible
-                con Playwright en el proyecto móvil (ver docs/architecture.md). flex-wrap deja que la
-                página haga scroll vertical normal, que sí es fiable.
+                "horizontal" y "path" usan flex-wrap/grid (nunca overflow-x-auto): con muchas tarjetas
+                en una pantalla angosta, un scroll horizontal anidado compite con el propio gesto de
+                arrastre táctil (el auto-scroll de dnd-kit desplaza el contenedor a mitad de un drag, y
+                el punto de destino calculado antes de soltar queda obsoleto) — confirmado de forma
+                reproducible con Playwright en el proyecto móvil (ver docs/architecture.md). Dejar que
+                la página haga scroll vertical normal es, en cambio, fiable.
               */}
-              <ol className={boardLayout === "horizontal" ? "flex flex-wrap gap-3" : "flex flex-col gap-3"}>
+              <ol
+                className={
+                  boardLayout === "horizontal"
+                    ? "flex flex-wrap gap-3"
+                    : boardLayout === "path"
+                      ? "grid gap-x-8 gap-y-8"
+                      : "flex flex-col gap-3"
+                }
+                style={boardLayout === "path" ? { gridTemplateColumns: `repeat(${getSnakeColumnCount(cards.length)}, minmax(0, 1fr))` } : undefined}
+              >
                 {cards.map((card, index) => (
                   <EventCard
                     key={card.id}
@@ -133,6 +143,7 @@ export function TimelineBoard({
                     accent={accent}
                     cardVariant={cardVariant}
                     boardLayout={boardLayout}
+                    snakeCell={boardLayout === "path" ? getSnakeLayout(cards.length)[index] : undefined}
                   />
                 ))}
               </ol>

@@ -288,21 +288,44 @@ vertical normal — el mismo mecanismo que ya funciona de forma fiable en todos 
 vez de competir con un scroll horizontal anidado durante el drag. Verificado con 5 corridas limpias
 consecutivas en aislamiento (`--workers=1`) en ambos proyectos de Playwright tras el cambio.
 
-`tests/e2e/helpers.ts`: `dragCard`/`reorderCardsTo` ahora aceptan un parámetro `axis` ("y" por
-defecto, "x" para tableros horizontales) que decide sobre qué eje aplicar el sesgo hacia el borde del
-destino, y llaman a `scrollIntoViewIfNeeded()` sobre la tarjeta destino antes de medir su posición
-(sigue siendo necesario con `flex-wrap`: con muchas tarjetas, filas más abajo pueden estar fuera de
-la vista y su posición de layout no es la misma que su posición real en pantalla hasta que se
-desplaza la página).
+`tests/e2e/helpers.ts`: `dragCard`/`reorderCardsTo` llaman a `scrollIntoViewIfNeeded()` sobre la
+tarjeta destino antes de medir su posición (sigue siendo necesario con `flex-wrap`: con muchas
+tarjetas, filas más abajo pueden estar fuera de la vista y su posición de layout no es la misma que
+su posición real en pantalla hasta que se desplaza la página). El eje de movimiento ya no se pasa a
+mano: `dragCard` lo calcula comparando la geometría real de origen/destino (`dx` vs `dy`) — necesario
+para Achievement Timeline (ver siguiente sección), cuya grilla-serpiente mezcla movimientos
+horizontales (dentro de una fila) y verticales (al saltar de fila) según el par de tarjetas.
+
+## Grilla en forma de camino (Achievement Timeline)
+
+Achievement Timeline mantiene la mecánica "sort", pero quita los eventos de debut y retiro del seed
+de Zidane (`achievements_zidane_remove_biographical.sql`) — eran hechos biográficos, no premios, y
+además revelaban trivialmente los dos extremos del orden — dejando solo premios/logros individuales
+y colectivos reales (Serie A con Juventus, Mundial y Balón de Oro de 1998, Eurocopa 2000, Champions
+League y Copa Intercontinental con el Real Madrid en 2002).
+
+El layout pasa de lista vertical a `boardLayout: "path"`: una grilla tipo serpiente/laberinto de
+tablero de juego de mesa, calculada en `snake-grid.ts` (puro, testeado con Vitest, mismo patrón de
+diseño que `verify-order.ts`/`match-placement.ts`). `getSnakeLayout(n)` ubica el elemento `index` en
+`(row, col)` alternando el sentido de lectura por fila (fila par → izquierda a derecha, fila impar →
+derecha a izquierda), así los índices consecutivos siempre son celdas vecinas en pantalla — esa es la
+propiedad que hace que se lea como un camino continuo. `EventCard` recibe la celda calculada y aplica
+`gridRow`/`gridColumn` inline, más una flecha de dirección (→ ← ↓ 🏁) hacia el siguiente paso.
+
+Se descartó reutilizar el patrón de "casilleros fijos" de `match-placement.ts` (considerado al
+diseñar esta sección): ahí cada casillero revela un dato real (el año, en Transfer) y el reto es
+"a qué casillero va cada elemento", no un orden secuencial. Achievement Timeline sigue siendo
+fundamentalmente "ordena estos N elementos" — cambia la forma en que se dibuja esa lista, no la
+mecánica — así que interaction sigue en `"sort"` y no necesitó RPCs nuevas.
+
+Al igual que con el layout horizontal de Club Timeline, se usa `rectSortingStrategy` de dnd-kit (no
+asume una sola fila/columna) y `flex-wrap`/`grid` en vez de scroll anidado. Verificado con 5 corridas
+limpias consecutivas en aislamiento en ambos proyectos de Playwright.
 
 ## Rediseños de modos pendientes (en curso)
 
 Decididos con el propietario del producto, todavía no construidos:
 
-- **Achievement Timeline**: se quitan los eventos de debut y retiro, dejando solo premios/logros
-  individuales y colectivos; el layout pasa de lista vertical a una grilla con forma de camino
-  (tipo tablero de juego de mesa), probablemente reutilizando el mismo patrón de "casilleros fijos"
-  de `match-placement.ts` en vez de una lista ordenable.
 - **Ballon d'Or Timeline**: mismo mecanismo "match" que Transfer, invertido — se arrastra un balón
   con el año hacia el nombre/foto del jugador (target), en vez de una camiseta hacia un año.
 

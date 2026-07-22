@@ -58,17 +58,18 @@ async function readCurrentOrder(page: Page): Promise<string[]> {
 }
 
 /**
- * `axis` indica en qué eje se disponen las tarjetas ("y" = lista vertical, la mayoría de modos;
- * "x" = línea de tiempo horizontal, ej. Club Timeline). El sesgo hacia el borde del destino en la
- * dirección del movimiento (ver comentario más abajo) debe aplicarse sobre ESE eje: en un tablero
- * horizontal todas las tarjetas comparten la misma Y, así que un sesgo en Y no desambigua nada.
+ * El eje de movimiento se detecta a partir de la geometría real (no se asume un layout fijo):
+ * en una lista vertical siempre es "y", en una fila horizontal siempre es "x", y en una grilla tipo
+ * serpiente (Achievement Timeline) alterna según el par de tarjetas — dentro de una fila es "x", al
+ * saltar de una fila a la siguiente es "y". El sesgo hacia el borde del destino en la dirección del
+ * movimiento (no el centro exacto) hace falta porque dnd-kit decide "antes/después" del elemento
+ * destino según de qué lado llega el puntero, y el centro es ambiguo entre ambos sentidos.
  */
-async function dragCard(page: Page, fromIndex: number, toIndex: number, axis: "x" | "y" = "y") {
+async function dragCard(page: Page, fromIndex: number, toIndex: number) {
   const cards = page.locator('[data-testid="event-card"]');
-  // En un tablero horizontal (`overflow-x-auto`) el destino puede estar fuera del viewport visible;
-  // boundingBox() devuelve su posición real de layout igual, así que arrastrar hacia esas coordenadas
-  // apunta "fuera de pantalla" y el drag nunca conecta. Como origen y destino son siempre adyacentes,
-  // basta con traer el destino a la vista para que ambos queden visibles a la vez.
+  // El destino puede estar fuera del viewport visible (scroll de página, o una fila más abajo en una
+  // grilla larga); boundingBox() devuelve su posición real de layout igual, así que arrastrar hacia
+  // esas coordenadas sin desplazar antes apuntaría "fuera de pantalla" y el drag nunca conectaría.
   await cards.nth(toIndex).scrollIntoViewIfNeeded();
   const fromBox = await cards.nth(fromIndex).boundingBox();
   const toBox = await cards.nth(toIndex).boundingBox();
@@ -76,10 +77,10 @@ async function dragCard(page: Page, fromIndex: number, toIndex: number, axis: "x
 
   const startX = fromBox.x + fromBox.width / 2;
   const startY = fromBox.y + fromBox.height / 2;
-  // Apunta cerca del borde en la dirección del movimiento, no al centro exacto: dnd-kit decide
-  // "antes/después" del elemento destino según de qué lado llega el puntero, y el centro es
-  // ambiguo entre movimientos hacia uno u otro lado (causa transposiciones en índices adyacentes).
-  const movingForward = toIndex > fromIndex;
+  const dx = toBox.x - fromBox.x;
+  const dy = toBox.y - fromBox.y;
+  const axis: "x" | "y" = Math.abs(dx) >= Math.abs(dy) ? "x" : "y";
+  const movingForward = axis === "x" ? dx > 0 : dy > 0;
   const endX =
     axis === "x" ? (movingForward ? toBox.x + toBox.width * 0.85 : toBox.x + toBox.width * 0.15) : toBox.x + toBox.width / 2;
   const endY =
@@ -102,7 +103,7 @@ async function dragCard(page: Page, fromIndex: number, toIndex: number, axis: "x
  * intermedias, así que el punto de destino calculado antes de soltar el mouse queda desactualizado.
  * Los movimientos de una sola posición no tienen ese problema.
  */
-export async function reorderCardsTo(page: Page, targetOrder: string[], axis: "x" | "y" = "y"): Promise<void> {
+export async function reorderCardsTo(page: Page, targetOrder: string[]): Promise<void> {
   for (let position = 0; position < targetOrder.length; position++) {
     let currentOrder = await readCurrentOrder(page);
     let currentIndex = currentOrder.indexOf(targetOrder[position]);
@@ -113,7 +114,7 @@ export async function reorderCardsTo(page: Page, targetOrder: string[], axis: "x
     // Invariante del selection sort: las posiciones [0, position) ya están fijadas,
     // así que el elemento buscado nunca puede estar antes de `position`; solo hace falta subirlo.
     while (currentIndex > position) {
-      await dragCard(page, currentIndex, currentIndex - 1, axis);
+      await dragCard(page, currentIndex, currentIndex - 1);
       currentIndex -= 1;
       currentOrder = await readCurrentOrder(page);
       const actualIndex = currentOrder.indexOf(targetOrder[position]);
