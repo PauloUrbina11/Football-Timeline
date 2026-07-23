@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { DndContext, useDraggable, useDroppable, type DragEndEvent } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { useMatchSession } from "@/features/game-engine/hooks/use-match-session";
 import { useTimer } from "@/features/game-engine/hooks/use-timer";
@@ -49,7 +50,7 @@ function ItemToken({ item, matchVariant, size }: { item: MatchCardData; matchVar
 }
 
 function DraggableItem({ item, matchVariant, disabled }: { item: MatchCardData; matchVariant: MatchVariant; disabled?: boolean }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: item.id, disabled });
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: item.id, disabled });
   return (
     <button
       ref={setNodeRef}
@@ -58,10 +59,11 @@ function DraggableItem({ item, matchVariant, disabled }: { item: MatchCardData; 
       type="button"
       data-testid="match-item"
       data-event-id={item.id}
+      style={{ transform: CSS.Translate.toString(transform) }}
       className={cn(
         "flex w-24 touch-none select-none flex-col items-center gap-1 rounded-lg border border-border bg-surface p-2 outline-none",
         "cursor-grab active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-primary",
-        isDragging && "opacity-60",
+        isDragging && "z-10 opacity-90 shadow-lg",
       )}
     >
       <ItemToken item={item} matchVariant={matchVariant} size={48} />
