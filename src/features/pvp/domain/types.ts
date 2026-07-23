@@ -13,6 +13,8 @@ export interface PvpMatchGameState {
   gameIndex: number;
   modeId: string;
   timelineId: string;
+  title: string;
+  description: string | null;
   status: PvpMatchGameStatus;
   startedAt: string | null;
   endsAt: string | null;

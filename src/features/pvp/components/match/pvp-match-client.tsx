@@ -48,18 +48,20 @@ function ReportedResult({
 
 function GameBoard({
   mode,
+  title,
   data,
   gameIndex,
   matchState,
   onReported,
 }: {
   mode: GameModeDefinition | undefined;
+  title: string;
   data: StartPvpGameSessionResult;
   gameIndex: number;
   matchState: PvpMatchState;
   onReported: (state: PvpMatchState) => void;
 }) {
-  const timelineTitle = mode?.name ?? "";
+  const timelineTitle = title || mode?.name || "";
 
   if (data.interaction === "match") {
     return (
@@ -186,6 +188,18 @@ export function PvpMatchClient({ matchId, initialState }: PvpMatchClientProps) {
     <div className="flex flex-col gap-6">
       <PlayerVsPlayerHeader state={state} />
 
+      {currentGame && (
+        <div>
+          {mode && (
+            <p className="text-sm text-muted">
+              {mode.icon} {mode.name}
+            </p>
+          )}
+          <h2 className="text-xl font-semibold text-foreground">{currentGame.title}</h2>
+          {currentGame.description && <p className="mt-1 text-sm text-muted">{currentGame.description}</p>}
+        </div>
+      )}
+
       {currentGame && !currentGame.myResult && currentGame.status === "active" && currentGame.endsAt && (
         <div className="flex justify-center">
           <PvpCountdownTimer endsAt={currentGame.endsAt} />
@@ -203,7 +217,14 @@ export function PvpMatchClient({ matchId, initialState }: PvpMatchClientProps) {
           error={null}
         />
       ) : session && currentGame && session.gameIndex === currentGame.gameIndex ? (
-        <GameBoard mode={mode} data={session.data} gameIndex={session.gameIndex} matchState={state} onReported={handleReported} />
+        <GameBoard
+          mode={mode}
+          title={currentGame.title}
+          data={session.data}
+          gameIndex={session.gameIndex}
+          matchState={state}
+          onReported={handleReported}
+        />
       ) : (
         <p className="text-muted">Cargando siguiente juego…</p>
       )}
